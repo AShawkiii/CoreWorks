@@ -5,12 +5,21 @@ import { edgeAuthConfig } from "@/server/auth/edge-config";
 
 const { auth } = NextAuth(edgeAuthConfig);
 
-/** Routes reachable without a session. Everything else requires sign-in. */
+/**
+ * Routes reachable without a session. Everything else requires sign-in.
+ *
+ * `/api/health` is here because a platform health probe has no session and
+ * cannot acquire one. Without it the probe receives the 307 redirect to
+ * `/login` that every other unauthenticated request gets, which most platforms
+ * score as a failure — the deployment then never goes live. The endpoint
+ * returns no secret and reads nothing (see `app/api/health/route.ts`).
+ */
 const PUBLIC_PREFIXES = [
   "/login",
   "/forgot-password",
   "/reset-password",
   "/api/auth",
+  "/api/health",
 ];
 
 function isPublic(pathname: string): boolean {

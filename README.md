@@ -25,6 +25,7 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **12** | Theming, branding, and appearance | ✅ **Complete** |
 | **13** | Import/export (CSV, Sheets migration path) | ✅ **Complete** |
 | **14** | Testing, security, deployment | ✅ **Complete** |
+| **15** | Production infrastructure — container image, health check, CI, platform | ✅ **Complete** |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -76,7 +77,8 @@ back into a spreadsheet.
 | [`docs/phase12-theming-branding.md`](docs/phase12-theming-branding.md) | Theming and branding: which colours an organization may change and which carry meaning it must not, how dark variants are derived rather than authored twice, and the two defences around the injected stylesheet. |
 | [`docs/phase13-import-export.md`](docs/phase13-import-export.md) | CSV import and export: the legacy headers as a contract checked against the legacy source, the four rules that make an import safe to re-run, and the two defects live verification caught. |
 | [`docs/phase14-testing-security-deployment.md`](docs/phase14-testing-security-deployment.md) | Rate limiting, the Content-Security-Policy nonce, the audit-trail reader, why the `notFound()` status defect carried since Phase 4 was only half fixable, and the row-level-security evaluation. |
-| [`docs/deployment.md`](docs/deployment.md) | Running CoreWorks in production: configuration, migrations, the database role, TLS, scheduled jobs, verifying a deployment, upgrading — and what is not wired. |
+| [`docs/deployment.md`](docs/deployment.md) | Running CoreWorks in production: configuration, migrations, the container image, the health check, the database role, TLS, scheduled jobs, backups and restore, platform choice, connection sizing, CI, verifying a deployment, upgrading and rollback — and what is not wired. |
+| [`docs/phase15-production-infrastructure.md`](docs/phase15-production-infrastructure.md) | Production infrastructure: why the health check does not touch the database, why Railway over Vercel for this architecture, and the secret `next build` copies into the standalone artifact. |
 
 ---
 
@@ -141,6 +143,31 @@ it recalculates health: a deadline passes because the date rolled over, not
 because anyone edited anything. Re-running it the same day sends nothing twice.
 
 Full instructions, including PostgreSQL setup and troubleshooting, are in
-[`docs/setup.md`](docs/setup.md). Running CoreWorks for other people —
-configuration, the database role, TLS, scheduling those jobs, and what is
-deliberately not wired — is [`docs/deployment.md`](docs/deployment.md).
+[`docs/setup.md`](docs/setup.md).
+
+## Production
+
+```bash
+npm ci
+npm run db:deploy      # migrate deploy — NOT db:migrate
+npm run build
+npm start
+```
+
+Or build the container image:
+
+```bash
+docker build -t coreworks .
+docker run -p 3000:3000 -e DATABASE_URL=… -e AUTH_SECRET=… -e AUTH_URL=… coreworks
+```
+
+`GET /api/health` is the liveness probe — unauthenticated, no database, no
+secrets. `npm run check:env` validates configuration before a process starts
+serving.
+
+**Never run `npm run db:seed` in production.** It creates a demo organization
+whose password is in this repository. Use `npm run bootstrap` instead.
+
+Everything else — the database role, TLS, scheduling the jobs, backups and
+restore, platform choice, connection sizing, rollback, and what is deliberately
+not wired — is in [`docs/deployment.md`](docs/deployment.md).

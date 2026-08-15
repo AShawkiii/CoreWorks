@@ -1,0 +1,98 @@
+name: CI
+
+# Validation only. This workflow never deploys and holds no deployment
+# credentials — publishing is a separate, explicitly authorized decision.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# A new push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      # The integration suite gates on DATABASE_URL and skips without it, so a
+      # run with no database would report green while testing far less. A real
+      # PostgreSQL is what makes this workflow mean something.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coreworks_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/coreworks_test?schema=public
+      # Test-only value. Not a credential for anything that exists.
+      AUTH_SECRET: ci-only-not-a-real-secret-0000000000000000
+      AUTH_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The legacy integrity check below compares against the Phase 0
+          # commit, which a shallow clone would not contain.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Lockfile-exact, and it runs `prisma generate` through postinstall.
+      - name: Install
+        run: npm ci
+
+      # Explicit as well as implicit: if postinstall is ever changed, the
+      # build failing three steps later would be a confusing way to find out.
+      - name: Generate Prisma Client
+        run: npm run db:generate
+
+      - name: Apply migrations
+        run: npm run db:deploy
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # /legacy is the business-rules reference the whole migration is checked
+      # against (master prompt §65). It must never drift, and a diff against
+      # the Phase 0 commit is the only check that actually proves it.
+      #
+      # The legacy suite itself is deliberately NOT run here: it carries one
+      # known failure preserved from Phase 0 (110/111), so a green/red signal
+      # would be misleading. Byte-for-byte identity is the meaningful gate.
+      - name: Verify /legacy is unchanged since Phase 0
+        run: |
+          if [ -n "$(git diff --name-only e9bb01cd264941796d561fde4c4170cb8d5a4a1b HEAD -- legacy/)" ]; then
+            echo "::error::/legacy has been modified. It is frozen reference material."
+            git diff --stat e9bb01cd264941796d561fde4c4170cb8d5a4a1b HEAD -- legacy/
+            exit 1
+          fi
+          echo "/legacy is byte-for-byte identical to Phase 0."

@@ -1,0 +1,45 @@
+# Keeps the build context small and, more importantly, keeps secrets out of it.
+# Anything listed here cannot reach the image even by accident.
+
+# Secrets — the reason this file matters most.
+.env
+.env.*
+!.env.example
+
+# Installed and generated inside the image instead.
+node_modules
+src/generated
+.next
+out
+build
+
+# Version control and CI.
+.git
+.gitignore
+.github
+
+# The legacy Apps Script mirror is reference material. Nothing at runtime
+# reads it, and `next.config.ts` already excludes it from output tracing.
+legacy
+
+# Tests and their fixtures are not part of a production image.
+tests
+vitest.config.mts
+
+# Documentation.
+docs
+README.md
+*.md
+!package.json
+
+# Local tooling and editor state.
+.vscode
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+tsconfig.tsbuildinfo
+
+# Container definitions themselves.
+Dockerfile
+.dockerignore
