@@ -110,9 +110,19 @@ describe("canManageRole", () => {
   });
 
   it("stops a role managing its own level — no lateral demotion", () => {
-    for (const role of ALL_ROLES) {
+    // Owner is the documented exception, covered below.
+    for (const role of ALL_ROLES.filter((r) => r !== OrgRole.OWNER)) {
       expect(canManageRole(role, role)).toBe(false);
     }
+  });
+
+  it("lets Owners manage other Owners", () => {
+    // Nothing outranks an Owner, so without this an Owner could never be
+    // demoted, deactivated, or created by an existing Owner — an
+    // organization would be permanently stuck with a departed owner's
+    // access. The last active Owner is protected by the member service
+    // instead, so the role can still never be emptied.
+    expect(canManageRole(OrgRole.OWNER, OrgRole.OWNER)).toBe(true);
   });
 
   it("stops privilege escalation upward", () => {

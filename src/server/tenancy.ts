@@ -1,15 +1,16 @@
 import { cache } from "react";
 
 import { auth } from "@/auth";
-import type { OrgRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { hasPermission, type Permission } from "@/server/auth/permissions";
 import {
-  hasPermission,
-  type Permission,
-} from "@/server/auth/permissions";
+  ForbiddenError,
+  UnauthenticatedError,
+  type OrgContext,
+} from "@/server/context";
 
 /**
- * Tenant isolation.
+ * Session-aware tenancy.
  *
  * Master prompt §6: isolation is enforced server-side and never by frontend
  * filtering. The rule this module exists to make unavoidable:
@@ -18,41 +19,25 @@ import {
  *   that id comes from the authenticated session — never from a request
  *   parameter, a form field, or a URL segment.
  *
- * Route handlers and server actions obtain an `OrgContext` here and use
- * `ctx.organizationId`. A caller that reaches for a raw `prisma` query on a
- * tenant table without that scope is the bug this design is meant to make
- * visible in review.
+ * Route handlers and server actions obtain an `OrgContext` here and pass it
+ * to services. A service reaching for a raw `prisma` query on a tenant table
+ * without that scope is the bug this design makes visible in review.
  */
 
-export class UnauthenticatedError extends Error {
-  constructor() {
-    super("Not signed in.");
-    this.name = "UnauthenticatedError";
-  }
-}
-
-export class ForbiddenError extends Error {
-  constructor(message = "You do not have permission to do that.") {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
-
-export interface OrgContext {
-  readonly userId: string;
-  readonly userEmail: string;
-  readonly userName: string;
-  readonly organizationId: string;
-  readonly organizationSlug: string;
-  readonly membershipId: string;
-  readonly role: OrgRole;
-}
+// Re-exported so callers have a single import for context plus session.
+export {
+  assertPermission,
+  assertSameOrg,
+  ForbiddenError,
+  UnauthenticatedError,
+  type OrgContext,
+} from "@/server/context";
 
 /**
  * The signed-in user's id, or null.
  *
- * Wrapped in React `cache` so multiple server components in one render share a
- * single lookup rather than each hitting the session and database.
+ * Wrapped in React `cache` so multiple server components in one render share
+ * a single lookup rather than each hitting the session and database.
  */
 export const getCurrentUserId = cache(async (): Promise<string | null> => {
   const session = await auth();
@@ -68,8 +53,8 @@ export async function requireUserId(): Promise<string> {
 /**
  * Resolves the caller's active organization context.
  *
- * Multi-org users are supported by the data model; until an organization
- * switcher exists (Phase 2), the earliest active membership is used, which is
+ * Multi-org membership is supported by the data model; until an organization
+ * switcher exists, the earliest active membership is used, which is
  * deterministic rather than arbitrary.
  */
 export const getOrgContext = cache(async (): Promise<OrgContext | null> => {
@@ -124,28 +109,4 @@ export async function requirePermission(
     throw new ForbiddenError();
   }
   return context;
-}
-
-export function assertPermission(
-  context: OrgContext,
-  permission: Permission,
-): void {
-  if (!hasPermission(context.role, permission)) {
-    throw new ForbiddenError();
-  }
-}
-
-/**
- * Guards a record fetched by id against cross-tenant access.
- *
- * Defence in depth: queries should already filter by `organizationId`. This
- * catches the case where one did not, turning a data leak into an error.
- */
-export function assertSameOrg(
-  context: OrgContext,
-  record: { organizationId: string } | null,
-): void {
-  if (!record || record.organizationId !== context.organizationId) {
-    throw new ForbiddenError("Record not found in this organization.");
-  }
 }

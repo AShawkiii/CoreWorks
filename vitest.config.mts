@@ -9,6 +9,10 @@ export default defineConfig({
     // The legacy Apps Script suite stays in place as reference; it is run
     // against the ported logic in Phase 3, not by this config.
     exclude: ["node_modules/**", "legacy/**", ".next/**"],
+    // Integration tests share one database; running their files in parallel
+    // would let fixtures from one clash with another.
+    fileParallelism: false,
+    setupFiles: ["tests/setup.ts"],
   },
   resolve: {
     alias: {

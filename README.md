@@ -12,8 +12,8 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 |---|---|---|
 | **0** | Repository audit, legacy preservation, migration plan | ✅ **Complete** |
 | **1** | Project scaffold, database schema, authentication, design tokens | ✅ **Complete** |
-| 2 | Organization, users, roles, permissions | Next |
-| 3 | Business-logic port + parity tests | Pending |
+| **2** | Organization, users, roles, permissions, app shell | ✅ **Complete** |
+| 3 | Business-logic port + parity tests | Next |
 | 4–14 | Clients, Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
@@ -48,8 +48,11 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/migration-plan.md`](docs/migration-plan.md) | Logic port procedure, Sheets → PostgreSQL data migration, import engine, cutover and rollback. |
 | [`docs/setup.md`](docs/setup.md) | Requirements, environment variables, database setup, commands, troubleshooting. |
 | [`docs/database.md`](docs/database.md) | Schema design: multi-tenancy, identity split, display IDs, normalization, stored vs derived fields. |
+| [`docs/architecture.md`](docs/architecture.md) | Application layering, module map, server/client boundary, design tokens, extensibility. |
+| [`docs/security.md`](docs/security.md) | Authentication, the role matrix, tenant isolation, validation, audit trails, and what is not yet implemented. |
 
-Additional documents (`architecture.md`, `database.md`, `setup.md`, `deployment.md`, `business-rules.md`, `security.md`) are added in the phases that produce them.
+`business-rules.md` arrives with the logic port in Phase 3, and
+`deployment.md` with Phase 14.
 
 ---
 
@@ -69,4 +72,13 @@ See [audit §6](docs/architecture-audit.md) for the authoritative statements wit
 
 ## Local development
 
-Setup instructions are added in Phase 1, when there is an application to run.
+```bash
+npm install
+cp .env.example .env      # set DATABASE_URL and AUTH_SECRET
+npm run db:migrate
+npm run db:seed           # optional demo organization
+npm run dev
+```
+
+Full instructions, including PostgreSQL setup and troubleshooting, are in
+[`docs/setup.md`](docs/setup.md).

@@ -143,10 +143,20 @@ export function hasAnyPermission(
 }
 
 /**
- * Whether `actor` may modify a member holding `target`. Strictly greater, so
- * an Admin cannot demote another Admin or an Owner.
+ * Whether `actor` may modify a member holding `target`.
+ *
+ * Seniority is strict — an Admin cannot demote another Admin — with one
+ * deliberate exception: **Owners may manage other Owners.**
+ *
+ * Without that exception nothing outranks an Owner, so an Owner could never
+ * be demoted, deactivated, or even created by an existing Owner. An
+ * organization whose owner leaves would be permanently stuck with their
+ * access. Owner peers can therefore manage each other, and the last active
+ * Owner is protected separately by the services (see
+ * `src/server/services/members.ts`) so the role can never be emptied.
  */
 export function canManageRole(actor: OrgRole, target: OrgRole): boolean {
+  if (actor === OrgRole.OWNER && target === OrgRole.OWNER) return true;
   return ROLE_RANK[actor] > ROLE_RANK[target];
 }
 
