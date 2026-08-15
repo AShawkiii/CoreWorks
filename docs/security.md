@@ -152,6 +152,25 @@ needs. They redirect back with the message in `?error=`, rendered as an alert
 banner. The value is rendered as text, so React escapes it; verified live with
 a `<script>` payload.
 
+## CSV import and export
+
+An import is the most consequential thing a non-admin can do to this data set,
+so it needs `data:import` (Manager and above); an export is a read and needs
+`data:export` (Team Member and above). A **Viewer holds neither** — a bulk
+extraction of the whole book of business is a different act from reading one
+page of it.
+
+Uploads are capped at 10 MB and read as text; nothing in a CSV is executed.
+The MIME type is deliberately not enforced, because browsers report a `.csv`
+inconsistently and the content is parsed as text either way. Enumerated values
+are validated against the audit §5 vocabulary and an unrecognised value is a
+rejected row, never a coerced one.
+
+Every import and export query is scoped by `organizationId` from the session.
+An export is the widest possible tenant leak available in this application —
+one file containing an entire organization — so the cross-tenant tests check
+every sheet rather than a sample.
+
 ## The branding stylesheet
 
 Organization brand colours are rendered into a `<style>` element, which is an

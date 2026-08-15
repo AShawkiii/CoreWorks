@@ -37,7 +37,8 @@ export type NavIconName =
   | "activity"
   | "notifications"
   | "settings"
-  | "profile";
+  | "profile"
+  | "data";
 
 export interface NavItem {
   label: string;
@@ -215,5 +216,17 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     label: "Notifications",
     href: "/settings/notifications",
     icon: "notifications",
+  },
+  {
+    /**
+     * `data:export` rather than `data:import`: the page holds both, and a
+     * Team Member who can export but not import still has a reason to open
+     * it. The page renders only the halves the role actually holds, and a
+     * Viewer — who has neither — does not see the entry at all.
+     */
+    label: "Import & export",
+    href: "/settings/data",
+    icon: "data",
+    permission: "data:export",
   },
 ];

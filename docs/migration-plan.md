@@ -145,6 +145,13 @@ The one structural transform. `MONTHLY_CLOSE`'s 18 stage columns become 18 `Mont
 
 ## 4. Import engine
 
+**Delivered in Phase 13** — see
+[`phase13-import-export.md`](./phase13-import-export.md). One caveat worth
+recording next to the rules below: rules 2 and 4 are in tension, because
+PostgreSQL aborts the whole transaction on any error. They are reconciled with
+a `SAVEPOINT` per row, which gives per-row isolation inside the single
+file-level transaction.
+
 Per master prompt §40. One reusable engine, per-entity adapters.
 
 ```
@@ -182,6 +189,8 @@ Adapted from the legacy `future-architecture.md` §"Migration path", which antic
 ---
 
 ## 6. Export
+
+**Delivered in Phase 13**, all eleven entities.
 
 Every importable entity is also exportable to CSV, using the **same legacy headers**. This gives round-tripping, the post-cutover rollback path, and continuity for staff who still want a spreadsheet — without CoreWorks depending on one.
 

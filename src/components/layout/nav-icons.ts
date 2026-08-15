@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarCheck,
   ClipboardList,
+  Database,
   FileBarChart,
   FolderKanban,
   Gauge,
@@ -44,5 +45,6 @@ export const NAV_ICONS: Record<NavIconName, LucideIcon> = {
   activity: Activity,
   notifications: Bell,
   settings: Settings,
+  data: Database,
   profile: UserCircle,
 };

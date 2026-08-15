@@ -23,8 +23,8 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **10** | Monthly Close, template catalog, scheduled generation jobs | ✅ **Complete** |
 | **11** | Activity Log and Notifications | ✅ **Complete** |
 | **12** | Theming, branding, and appearance | ✅ **Complete** |
-| 13 | Import/export (CSV, Sheets migration path) | Next |
-| 14 | Testing, security, deployment | Pending |
+| **13** | Import/export (CSV, Sheets migration path) | ✅ **Complete** |
+| 14 | Testing, security, deployment | Next |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -46,7 +46,11 @@ The legacy codebase was deliberately built with every business rule in a pure, d
 
 Nothing in `/legacy` is executed by CoreWorks. It is reference material and must not be deleted (see the audit for the rule-by-rule mapping).
 
-**CoreWorks has no runtime dependency on Google Sheets, Apps Script, or `clasp`.** Sheets is supported only as an optional CSV import/export format.
+**CoreWorks has no runtime dependency on Google Sheets, Apps Script, or `clasp`.** Sheets is supported only as an optional CSV import/export format — see
+[`docs/phase13-import-export.md`](docs/phase13-import-export.md). All eleven
+legacy data sheets import and export using their original column headers, so an
+unmodified export needs no hand-editing and a CoreWorks export can go straight
+back into a spreadsheet.
 
 ---
 
@@ -70,6 +74,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase10-close-templates-jobs.md`](docs/phase10-close-templates-jobs.md) | Monthly Close, the template catalog, and the scheduled jobs: two completion figures, the blank-stage trap, and why the daily recalculation is necessary rather than convenient. |
 | [`docs/phase11-activity-notifications.md`](docs/phase11-activity-notifications.md) | The Activity Log and Notifications: why one is a reader over ported rules and the other is net-new, the four delivery rules, and the three kinds of actor an entry can have. |
 | [`docs/phase12-theming-branding.md`](docs/phase12-theming-branding.md) | Theming and branding: which colours an organization may change and which carry meaning it must not, how dark variants are derived rather than authored twice, and the two defences around the injected stylesheet. |
+| [`docs/phase13-import-export.md`](docs/phase13-import-export.md) | CSV import and export: the legacy headers as a contract checked against the legacy source, the four rules that make an import safe to re-run, and the two defects live verification caught. |
 
 `deployment.md` arrives with Phase 14.
 
