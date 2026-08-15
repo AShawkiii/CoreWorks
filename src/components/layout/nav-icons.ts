@@ -13,6 +13,7 @@ import {
   MessageSquareWarning,
   Package,
   Settings,
+  ShieldCheck,
   UserCircle,
   Users,
   Wrench,
@@ -46,5 +47,6 @@ export const NAV_ICONS: Record<NavIconName, LucideIcon> = {
   notifications: Bell,
   settings: Settings,
   data: Database,
+  shield: ShieldCheck,
   profile: UserCircle,
 };

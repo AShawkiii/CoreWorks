@@ -9,6 +9,7 @@ import {
   notifySystem,
 } from "@/server/services/notifications";
 import { recalculateAllClientsProgress } from "@/server/services/progress";
+import { pruneRateLimits } from "@/server/services/rate-limit";
 import { generateMonthlyTasks } from "@/server/services/task-generation";
 
 /**
@@ -56,9 +57,28 @@ export interface JobRunResult {
  * Running them in the other order would publish a health verdict against
  * yesterday's numbers for one pass.
  */
+/**
+ * How long a rate-limit row is kept after its window closed.
+ *
+ * A day, which is far longer than any window in use, so a counter is never
+ * pruned while it could still matter.
+ */
+const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+export interface DailyRecalculationOptions {
+  /**
+   * Whether this run also prunes expired rate-limit rows.
+   *
+   * Those rows are instance-wide, not per-tenant, so only the first
+   * organization of a sweep does the work — see `forEachOrganization`.
+   */
+  pruneRateLimits?: boolean;
+}
+
 export async function runDailyRecalculation(
   ctx: OrgContext,
   today: Date = new Date(),
+  options: DailyRecalculationOptions = {},
 ): Promise<JobRunResult> {
   const startedAt = new Date();
 
@@ -73,6 +93,18 @@ export async function runDailyRecalculation(
   // marked Delayed for that same fact.
   const reminders = await notifyDueAndOverdueTasks(ctx, today);
 
+  /*
+   * Phase 14 housekeeping. Rate-limit rows are instance-wide rather than
+   * per-tenant, so this would do the same work once per organization — it is
+   * therefore guarded to the first tenant of the sweep by the caller passing
+   * `pruneRateLimits: false` for the rest. Nothing depends on it for
+   * correctness: an expired window is decided as expired whether or not the
+   * row still exists.
+   */
+  const rateLimitsPruned = options.pruneRateLimits
+    ? await pruneRateLimits(new Date(today.getTime() - RATE_LIMIT_RETENTION_MS))
+    : 0;
+
   return {
     job: "daily-recalculation",
     organizationId: ctx.organizationId,
@@ -84,6 +116,7 @@ export async function runDailyRecalculation(
       healthChanged,
       dueSoonNotices: reminders.dueSoon,
       overdueNotices: reminders.overdue,
+      rateLimitsPruned,
     },
   };
 }
@@ -141,7 +174,12 @@ export async function runMonthlyGeneration(
  * aborts halfway leaves half the tenants stale with no signal.
  */
 export async function forEachOrganization(
-  run: (ctx: OrgContext) => Promise<JobRunResult>,
+  /**
+   * `first` is true only for the first organization of the sweep, so
+   * instance-wide housekeeping — pruning rate-limit rows — happens once rather
+   * than once per tenant.
+   */
+  run: (ctx: OrgContext, first: boolean) => Promise<JobRunResult>,
 ): Promise<{ results: JobRunResult[]; failures: { slug: string; error: string }[] }> {
   const organizations = await prisma.organization.findMany({
     select: { id: true, slug: true },
@@ -158,7 +196,7 @@ export async function forEachOrganization(
     const ctx = systemContext(org.id, org.slug, OrgRole.OWNER);
 
     try {
-      results.push(await run(ctx));
+      results.push(await run(ctx, results.length === 0 && failures.length === 0));
     } catch (error) {
       failures.push({
         slug: org.slug,

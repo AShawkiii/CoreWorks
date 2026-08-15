@@ -46,9 +46,9 @@ async function main() {
   const startedAt = new Date();
   console.log(`[${startedAt.toISOString()}] running ${name}...`);
 
-  const { results, failures } = await forEachOrganization((ctx) =>
+  const { results, failures } = await forEachOrganization((ctx, first) =>
     name === "daily-recalculation"
-      ? runDailyRecalculation(ctx)
+      ? runDailyRecalculation(ctx, new Date(), { pruneRateLimits: first })
       : runMonthlyGeneration(ctx, period),
   );
 

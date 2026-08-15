@@ -192,8 +192,9 @@ The probe task was removed afterwards.
 ## 8. Known rough edge, carried forward
 
 An unauthorized page request calls `notFound()`, which renders the not-found
-body but returns **HTTP 200** rather than 404. Unchanged from Phases 4–6,
-tracked for Phase 13. The new `report:view` gate on this page uses the same
+body but returns **HTTP 200** rather than 404. Unchanged from Phases 4–6.
+
+**Resolved in Phase 14** for permission refusals — the check moved into `(app)/layout.tsx`, above the Suspense boundary that was committing the status. A record-level refusal still returns 200; see [`phase14-testing-security-deployment.md`](./phase14-testing-security-deployment.md) §1. The `report:view` gate on this page uses the same
 mechanism.
 
 ---

@@ -15,8 +15,11 @@ Every business table carries `organizationId`.
 - Deleting an organization cascades to all of its data.
 - Scoping is enforced in application code through `src/server/tenancy.ts`, which derives `organizationId` from the session and never from request input.
 
-Row-level security is a later hardening step (see `security.md` when Phase 13
-lands); it is defence in depth, not a replacement for the scoping above.
+Row-level security was **evaluated in Phase 14 and not adopted** — it would be
+inert while the application connects as a table owner, and the per-request
+tenant id has nowhere safe to live on a pooled connection. It is defence in
+depth over a boundary the scoping above already enforces; `security.md` records
+the measurements and what adopting it would take.
 
 ## Identity
 

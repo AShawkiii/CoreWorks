@@ -8,6 +8,7 @@ import {
   importRequestSchema,
 } from "@/lib/validation/data-transfer";
 import { ForbiddenError, requirePermission } from "@/server/tenancy";
+import { logAudit } from "@/server/services/activity";
 import { exportSheet } from "@/server/services/export";
 import { commitImport, previewImport } from "@/server/services/import";
 import type { ImportReport } from "@/server/services/import/types";
@@ -90,6 +91,22 @@ export async function importCsvAction(
     }
 
     if (commit) {
+      // Audited, not merely logged as activity: a bulk write is a security
+      // event as much as a business one, and the ActivityLog it also produces
+      // is scoped to individual records rather than to the run (audit §15).
+      await logAudit({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        userEmail: ctx.userEmail,
+        action: "data.import",
+        metadata: {
+          sheet,
+          imported: report.imported,
+          skipped: report.skipped,
+          failed: report.failed,
+        },
+      });
+
       // An import rewrites almost everything a page can show.
       revalidatePath("/", "layout");
     }
@@ -132,6 +149,18 @@ export async function exportCsvAction(
     }
 
     const result = await exportSheet(ctx, parsed.data.sheet as LegacySheet);
+
+    // An export is a bulk extraction of the organization's data. It leaves no
+    // trace in the business trail — nothing changed — so the audit trail is
+    // the only place it can be recorded, and it is exactly the kind of event
+    // somebody investigating a leak needs.
+    await logAudit({
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      userEmail: ctx.userEmail,
+      action: "data.export",
+      metadata: { sheet: parsed.data.sheet, rows: result.rowCount },
+    });
 
     return {
       status: "success",

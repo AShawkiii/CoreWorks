@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -8,10 +9,12 @@ import { ThemeStyle } from "@/components/theme/theme-style";
 import { ORG_ROLE_LABELS } from "@/lib/domain/labels";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { hasPermission } from "@/server/auth/permissions";
+import { permissionForPath } from "@/server/auth/route-permissions";
 import { countUnreadNotifications } from "@/server/services/notifications";
 import { getOrganization } from "@/server/services/organization";
 import { getEffectiveThemeMode, getThemeCss } from "@/server/services/theme";
 import { getOrgContext } from "@/server/tenancy";
+import { NONCE_HEADER, PATHNAME_HEADER } from "@/proxy";
 
 /**
  * Authenticated shell.
@@ -27,6 +30,22 @@ export default async function AppLayout({
 }) {
   const ctx = await getOrgContext();
   if (!ctx) redirect("/login");
+
+  /*
+   * Route permission, pre-checked HERE rather than only in the page.
+   *
+   * The pages still check for themselves and remain the authorization
+   * boundary. What this adds is the HTTP status: `loading.tsx` opens a
+   * Suspense boundary below this layout, so by the time a page runs, the shell
+   * has flushed and 200 is committed. Refusing here — above the boundary —
+   * lets `notFound()` actually set 404, which is what a cache or a crawler
+   * needs in order not to treat a denied page as a valid one.
+   */
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get(NONCE_HEADER) ?? undefined;
+  const pathname = requestHeaders.get(PATHNAME_HEADER);
+  const required = pathname ? permissionForPath(pathname) : null;
+  if (required && !hasPermission(ctx.role, required)) notFound();
 
   const [organization, unreadNotifications, brandCss, themeMode] =
     await Promise.all([
@@ -48,7 +67,7 @@ export default async function AppLayout({
   return (
     <>
       <ThemeStyle css={brandCss} />
-      <ThemeModeSync mode={themeMode.mode} />
+      <ThemeModeSync mode={themeMode.mode} nonce={nonce} />
       <AppShell
         sections={sections}
         organizationName={organization?.name ?? "CoreWorks"}

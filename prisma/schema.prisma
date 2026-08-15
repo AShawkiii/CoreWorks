@@ -838,6 +838,23 @@ model ActivityLog {
   @@index([organizationId, entityType, entityId])
 }
 
+/// Net-new (Phase 14). Fixed-window counters for sign-in and password reset,
+/// closing the rate-limiting gap security.md has carried since Phase 2.
+///
+/// Stored in PostgreSQL rather than in memory: the application runs as more
+/// than one process in any real deployment, and a per-process counter would
+/// give an attacker one budget per instance. It also has to survive a restart,
+/// which is exactly when an attacker would like it not to.
+model RateLimit {
+  /// "scope:subject", e.g. "signin:alex@example.com" or "signin-ip:203.0.113.4".
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+}
+
 /// Net-new (master prompt §35). Security/technical trail, distinct from the
 /// user-facing ActivityLog: sign-ins, permission changes, exports, settings.
 model AuditLog {

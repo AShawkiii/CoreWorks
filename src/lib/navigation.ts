@@ -38,7 +38,8 @@ export type NavIconName =
   | "notifications"
   | "settings"
   | "profile"
-  | "data";
+  | "data"
+  | "shield";
 
 export interface NavItem {
   label: string;
@@ -97,7 +98,10 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/requests",
         permission: "request:view",
       },
-      { label: "Team", icon: "team", phase: 9, permission: "member:view" },
+      // A "Team — available in Phase 9" placeholder stood here. Phase 9
+      // shipped both destinations it stood for — the Team Dashboard under
+      // Insights and member management under Settings — so the placeholder was
+      // promising something that had already arrived twice over.
     ],
   },
   {
@@ -228,5 +232,17 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     href: "/settings/data",
     icon: "data",
     permission: "data:export",
+  },
+  {
+    /**
+     * The AuditLog reader (Phase 14). `settings:manage` — Owner and Admin —
+     * rather than the `activity:view` that gates the business trail: this
+     * shows failed sign-ins and bulk exports, which is an administrator's
+     * concern rather than a manager's.
+     */
+    label: "Security",
+    href: "/settings/security",
+    icon: "shield",
+    permission: "settings:manage",
   },
 ];

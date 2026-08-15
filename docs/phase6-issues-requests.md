@@ -219,7 +219,9 @@ An unauthorized page request calls `notFound()`, which renders the not-found
 body but returns **HTTP 200** rather than 404. Verified again this phase
 against `/issues/[id]`, `/issues/[id]/edit`, and `/requests/[id]` including
 cross-tenant requests: no leak of either record's title. Unchanged from
-Phases 4 and 5, tracked for Phase 13.
+Phases 4 and 5.
+
+**Resolved in Phase 14** for permission refusals — the check moved into `(app)/layout.tsx`, above the Suspense boundary that was committing the status. A record-level refusal still returns 200; see [`phase14-testing-security-deployment.md`](./phase14-testing-security-deployment.md) §1.
 
 ---
 

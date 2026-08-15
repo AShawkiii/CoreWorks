@@ -39,11 +39,15 @@ function syncScript(mode: "light" | "dark" | "system"): string {
 
 export function ThemeModeSync({
   mode,
+  nonce,
 }: {
   mode: "light" | "dark" | "system";
+  /** Required under the Phase 14 Content-Security-Policy — see ThemeScript. */
+  nonce?: string;
 }) {
   return (
     <script
+      nonce={nonce}
       // See the note above: the only interpolation is a server-narrowed enum.
       dangerouslySetInnerHTML={{ __html: syncScript(mode) }}
     />

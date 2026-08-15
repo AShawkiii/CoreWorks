@@ -121,7 +121,9 @@ and Archive control; a Viewer sees none of them, and their `/clients/new` and
 
 One defect found and documented rather than papered over: programmatic
 `notFound()` returns HTTP 200 instead of 404. No data exposure; recorded in
-[`security.md`](./security.md) and tracked for Phase 13.
+[`security.md`](./security.md).
+
+**Resolved in Phase 14** for permission refusals — the check moved into `(app)/layout.tsx`, above the Suspense boundary that was committing the status. A record-level refusal still returns 200; see [`phase14-testing-security-deployment.md`](./phase14-testing-security-deployment.md) §1.
 
 ---
 

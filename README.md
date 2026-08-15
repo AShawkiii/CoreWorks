@@ -24,7 +24,7 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **11** | Activity Log and Notifications | ✅ **Complete** |
 | **12** | Theming, branding, and appearance | ✅ **Complete** |
 | **13** | Import/export (CSV, Sheets migration path) | ✅ **Complete** |
-| 14 | Testing, security, deployment | Next |
+| **14** | Testing, security, deployment | ✅ **Complete** |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -63,7 +63,7 @@ back into a spreadsheet.
 | [`docs/setup.md`](docs/setup.md) | Requirements, environment variables, database setup, commands, troubleshooting. |
 | [`docs/database.md`](docs/database.md) | Schema design: multi-tenancy, identity split, display IDs, normalization, stored vs derived fields. |
 | [`docs/architecture.md`](docs/architecture.md) | Application layering, module map, server/client boundary, design tokens, extensibility. |
-| [`docs/security.md`](docs/security.md) | Authentication, the role matrix, tenant isolation, validation, audit trails, and what is not yet implemented. |
+| [`docs/security.md`](docs/security.md) | Authentication and rate limiting, the role matrix, tenant isolation, validation, browser policy, audit trails, and what is deliberately not implemented. |
 | [`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) | Every migrated legacy rule, its destination, parity status, known differences, and the tests covering it. |
 | [`docs/phase4-clients.md`](docs/phase4-clients.md) | The Clients module: what it consumes from Phase 3, list behaviours, the one deviation, security, and tests. |
 | [`docs/phase5-tasks.md`](docs/phase5-tasks.md) | The Tasks module: the status-change sequence, bulk semantics, the two-layer edit permission, and live verification results. |
@@ -75,8 +75,8 @@ back into a spreadsheet.
 | [`docs/phase11-activity-notifications.md`](docs/phase11-activity-notifications.md) | The Activity Log and Notifications: why one is a reader over ported rules and the other is net-new, the four delivery rules, and the three kinds of actor an entry can have. |
 | [`docs/phase12-theming-branding.md`](docs/phase12-theming-branding.md) | Theming and branding: which colours an organization may change and which carry meaning it must not, how dark variants are derived rather than authored twice, and the two defences around the injected stylesheet. |
 | [`docs/phase13-import-export.md`](docs/phase13-import-export.md) | CSV import and export: the legacy headers as a contract checked against the legacy source, the four rules that make an import safe to re-run, and the two defects live verification caught. |
-
-`deployment.md` arrives with Phase 14.
+| [`docs/phase14-testing-security-deployment.md`](docs/phase14-testing-security-deployment.md) | Rate limiting, the Content-Security-Policy nonce, the audit-trail reader, why the `notFound()` status defect carried since Phase 4 was only half fixable, and the row-level-security evaluation. |
+| [`docs/deployment.md`](docs/deployment.md) | Running CoreWorks in production: configuration, migrations, the database role, TLS, scheduled jobs, verifying a deployment, upgrading — and what is not wired. |
 
 ---
 
@@ -127,4 +127,6 @@ it recalculates health: a deadline passes because the date rolled over, not
 because anyone edited anything. Re-running it the same day sends nothing twice.
 
 Full instructions, including PostgreSQL setup and troubleshooting, are in
-[`docs/setup.md`](docs/setup.md).
+[`docs/setup.md`](docs/setup.md). Running CoreWorks for other people —
+configuration, the database role, TLS, scheduling those jobs, and what is
+deliberately not wired — is [`docs/deployment.md`](docs/deployment.md).

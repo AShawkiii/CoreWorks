@@ -282,8 +282,9 @@ tells the person nothing and looks identical to the server being broken.
 ## 9. Known rough edge, carried forward
 
 An unauthorized page request calls `notFound()`, which renders the not-found
-body but returns **HTTP 200** rather than 404. Unchanged from Phases 4–10,
-tracked for Phase 13.
+body but returns **HTTP 200** rather than 404. Unchanged from Phases 4–10.
+
+**Resolved in Phase 14** for permission refusals — the check moved into `(app)/layout.tsx`, above the Suspense boundary that was committing the status. A record-level refusal still returns 200; see [`phase14-testing-security-deployment.md`](./phase14-testing-security-deployment.md) §1.
 
 ---
 
@@ -291,7 +292,7 @@ tracked for Phase 13.
 
 - **`AuditLog` still has no screen.** The model and `logAudit` exist and are
   distinct from the user-facing `ActivityLog` (audit §15). Sign-in and export
-  events are Phase 13's security work; adding a reader now would display an
+  events are Phase 14's security work; adding a reader now would display an
   almost empty table.
 - **No mention autocomplete**, as above.
 - **No email or push delivery**, as above.
