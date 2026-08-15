@@ -19,6 +19,8 @@ interface AppShellProps {
    * shell is a Client Component and must not query anything itself.
    */
   notifications: React.ReactNode;
+  /** Server-resolved light/dark mode, so the toggle renders correct on first paint. */
+  themeMode: "light" | "dark" | "system";
   children: React.ReactNode;
 }
 
@@ -32,6 +34,7 @@ export function AppShell({
   logoUrl,
   userMenu,
   notifications,
+  themeMode,
   children,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -121,7 +124,7 @@ export function AppShell({
 
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             {notifications}
-            <ThemeToggle />
+            <ThemeToggle initialMode={themeMode} />
             {userMenu}
           </div>
         </header>

@@ -4,6 +4,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { cn } from "@/lib/utils";
+import { setThemeModeAction } from "@/server/actions/theme";
 
 type ThemeMode = "light" | "dark" | "system";
 
@@ -50,14 +51,37 @@ function getSnapshot(): ThemeMode {
   return isThemeMode(stored) ? stored : "system";
 }
 
-/** The server cannot know the preference; ThemeScript corrects the DOM before paint. */
-function getServerSnapshot(): ThemeMode {
-  return "system";
+/**
+ * What to assume while rendering on the server.
+ *
+ * The server DOES know the answer from Phase 12 onward — it resolves the
+ * user's stored preference against the organization default — so it is passed
+ * in rather than guessed. `ThemeScript` still corrects the DOM before paint
+ * for the unauthenticated pages, which have no organization to ask.
+ */
+function serverSnapshotFor(initial: ThemeMode): () => ThemeMode {
+  return () => initial;
 }
 
-/** Light/dark/system switch (master prompt §30). */
-export function ThemeToggle() {
-  const mode = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+/**
+ * Light/dark/system switch (master prompt §30).
+ *
+ * The choice is written to `localStorage` for the next paint AND to the
+ * database, so it follows the person to another device. The server write is
+ * deliberately not awaited: the visible change has already happened, and
+ * blocking a colour toggle on a round trip would make it feel broken. A failed
+ * write costs the user nothing worse than re-choosing on their next device.
+ */
+export function ThemeToggle({
+  initialMode = "system",
+}: {
+  initialMode?: ThemeMode;
+}) {
+  const mode = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    serverSnapshotFor(initialMode),
+  );
 
   // In "system" mode, follow the OS as it changes — a machine that switches
   // at sunset should carry the app with it, without a reload.
@@ -75,6 +99,12 @@ export function ThemeToggle() {
     apply(next);
     // Notifies this tab; the native "storage" event only fires in others.
     window.dispatchEvent(new Event(CHANGE_EVENT));
+
+    void setThemeModeAction(next).catch(() => {
+      // Intentionally silent. The preference is applied and cached locally;
+      // only its portability to another device is lost, which is not worth
+      // an error banner over a theme switch.
+    });
   }
 
   return (

@@ -152,6 +152,17 @@ needs. They redirect back with the message in `?error=`, rendered as an alert
 banner. The value is rendered as text, so React escapes it; verified live with
 a `<script>` payload.
 
+## The branding stylesheet
+
+Organization brand colours are rendered into a `<style>` element, which is an
+injection surface. It is defended twice: the schema accepts only three numeric
+HSL channels (`221 83% 53%` — never `#hex`, `rgb()`, a keyword, or anything
+containing a brace or `</style>`), and the writer re-serialises from the parsed
+**numbers** rather than echoing the stored string. Values are re-validated on
+read as well, per slot, so a corrupt row degrades to one default colour rather
+than to an injected rule. Logo URLs reuse the `https`-only rule from Phase 2,
+so a logo can never be a `javascript:` or `data:` URI.
+
 ## Audit trails
 
 Two separate logs, on purpose:
@@ -189,7 +200,7 @@ Named here so their absence is a decision rather than an oversight.
 | Multi-factor authentication | Post-v1 |
 | Session revocation on role change (a JWT keeps its claims until expiry; the role is re-read from the database on every request, so this affects session lifetime, not permissions) | Phase 13 |
 | Content Security Policy headers | Phase 13 |
-| Attachment upload scanning | Phase 12 |
+| Attachment upload scanning | Phase 13 — Phase 12 added no upload path; organization logos are `https` URLs, not files |
 
 ## Secrets
 

@@ -90,9 +90,19 @@ Every colour resolves through a semantic token in `src/app/globals.css` —
 health states. No component contains a palette literal.
 
 Tokens are HSL *channels* (`221 83% 53%`), not full colours, so an
-organization's stored brand colour can be injected as a plain style attribute
-and picked up by every consumer. That is what makes Phase 12's per-organization
-branding possible without touching components.
+organization's stored brand colour can be injected as a stylesheet and picked
+up by every consumer. That is what let Phase 12 add per-organization branding
+without touching a single component.
+
+Branding governs **chrome only**. The client-health, status, and priority
+tokens are not brandable: they carry meaning inherited from the legacy
+enumerations (audit §5), where the same four fills drove both the
+spreadsheet's conditional formatting and the web app's badges. See
+[`phase12-theming-branding.md`](./phase12-theming-branding.md).
+
+Dark variants of a brand colour are derived rather than stored: the lightness
+is walked until the colour clears a WCAG contrast floor against the surface it
+sits on, with the hue and saturation left exactly as chosen.
 
 Dark mode is authored, not inverted: health badges get low-chroma fills with
 high-contrast text so a Delayed badge still reads as urgent.

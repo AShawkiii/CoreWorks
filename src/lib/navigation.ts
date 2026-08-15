@@ -200,10 +200,16 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
   },
   { label: "Profile", href: "/settings/profile", icon: "profile" },
   {
+    /**
+     * `org:view` rather than `branding:manage`: the palette is visible to
+     * anyone who can see the organization, and only changing it is restricted.
+     * A Manager who cannot edit still benefits from seeing what the colours
+     * mean — the page explains which ones branding deliberately leaves alone.
+     */
     label: "Appearance",
+    href: "/settings/appearance",
     icon: "settings",
-    phase: 12,
-    permission: "branding:manage",
+    permission: "org:view",
   },
   {
     label: "Notifications",

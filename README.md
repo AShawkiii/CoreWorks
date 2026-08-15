@@ -22,8 +22,9 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **9** | Team Dashboard and Management Report | ✅ **Complete** |
 | **10** | Monthly Close, template catalog, scheduled generation jobs | ✅ **Complete** |
 | **11** | Activity Log and Notifications | ✅ **Complete** |
-| 12 | Theming, branding, and appearance | Next |
-| 13–14 | Import/export, testing and deployment | Pending |
+| **12** | Theming, branding, and appearance | ✅ **Complete** |
+| 13 | Import/export (CSV, Sheets migration path) | Next |
+| 14 | Testing, security, deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -68,6 +69,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase9-team-management.md`](docs/phase9-team-management.md) | Team Dashboard and Management Report: the workload rules, the four report sections, and the audit D4 fix to how assignments are matched. |
 | [`docs/phase10-close-templates-jobs.md`](docs/phase10-close-templates-jobs.md) | Monthly Close, the template catalog, and the scheduled jobs: two completion figures, the blank-stage trap, and why the daily recalculation is necessary rather than convenient. |
 | [`docs/phase11-activity-notifications.md`](docs/phase11-activity-notifications.md) | The Activity Log and Notifications: why one is a reader over ported rules and the other is net-new, the four delivery rules, and the three kinds of actor an entry can have. |
+| [`docs/phase12-theming-branding.md`](docs/phase12-theming-branding.md) | Theming and branding: which colours an organization may change and which carry meaning it must not, how dark variants are derived rather than authored twice, and the two defences around the injected stylesheet. |
 
 `deployment.md` arrives with Phase 14.
 
