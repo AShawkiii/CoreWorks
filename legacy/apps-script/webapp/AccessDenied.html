@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+
+  <style>
+    :root {
+      --fl-bg: #f7f8fa;
+      --fl-surface: #ffffff;
+      --fl-border: #e2e5ea;
+      --fl-text: #1f2937;
+      --fl-text-muted: #6b7280;
+      --fl-brand: #1f2937;
+      --fl-danger: #b91c1c;
+      --fl-danger-bg: #fee2e2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      background: var(--fl-bg);
+      color: var(--fl-text);
+    }
+
+    #app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #app-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 24px;
+      background: var(--fl-brand);
+      color: #fff;
+    }
+
+    #app-header .brand {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+    }
+
+    #app-content {
+      flex: 1;
+      padding: 24px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: var(--fl-surface);
+      border: 1px solid var(--fl-border);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 60px auto;
+      max-width: 480px;
+      text-align: center;
+    }
+
+    .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--fl-danger-bg);
+      color: var(--fl-danger);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+    }
+
+    p {
+      color: var(--fl-text-muted);
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+
+    .email {
+      display: inline-block;
+      margin: 8px 0 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: var(--fl-bg);
+      border: 1px solid var(--fl-border);
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .help-text {
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app-shell">
+
+    <header id="app-header">
+      <div class="brand">
+        Finance Lab
+      </div>
+    </header>
+
+    <main id="app-content">
+
+      <div class="panel">
+
+        <div class="icon">
+          !
+        </div>
+
+        <h2>
+          Access Restricted
+        </h2>
+
+        <p>
+          The following account is not authorized to access
+          the Finance Lab Client Delivery system:
+        </p>
+
+        <div class="email">
+          <?= requestingEmail ?>
+        </div>
+
+        <p class="help-text">
+          Access is granted based on the
+          <strong>EMPLOYEES</strong> sheet.
+        </p>
+
+        <p class="help-text">
+          The email must exist in the
+          <strong>Email</strong> column and
+          <strong>Active?</strong> must be set to
+          <strong>Yes</strong>.
+        </p>
+
+        <p class="help-text">
+          If you believe this is a mistake,
+          please ask a Finance Lab administrator
+          to check your employee record.
+        </p>
+
+      </div>
+
+    </main>
+
+  </div>
+
+</body>
+</html>

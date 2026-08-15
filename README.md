@@ -1,0 +1,62 @@
+# CoreWorks
+
+Client management and financial operations platform for finance, accounting, and consulting teams.
+
+CoreWorks answers, at a glance: which clients are on track, at risk, or delayed; what work is overdue; what is waiting on the client; who owns what; how the team is loaded; and where month-end close stands — across every client.
+
+---
+
+## Repository status
+
+| Phase | Scope | Status |
+|---|---|---|
+| **0** | Repository audit, legacy preservation, migration plan | ✅ **Complete** |
+| 1 | Project scaffold, database schema, authentication | Next |
+| 2 | Organization, users, roles, permissions | Pending |
+| 3 | Business-logic port + parity tests | Pending |
+| 4–14 | Clients, Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
+
+Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
+
+---
+
+## Origin
+
+CoreWorks is the successor to an internal Google Sheets + Google Apps Script system (7,852 LOC). That system is the **business-rules source of truth** and is preserved verbatim in [`/legacy`](./legacy).
+
+The legacy codebase was deliberately built with every business rule in a pure, dependency-free `*Logic.gs` module, separate from its spreadsheet I/O — explicitly so the rules could later move to a real backend. CoreWorks is therefore a **port of proven logic**, not a reimplementation.
+
+Nothing in `/legacy` is executed by CoreWorks. It is reference material and must not be deleted (see the audit for the rule-by-rule mapping).
+
+**CoreWorks has no runtime dependency on Google Sheets, Apps Script, or `clasp`.** Sheets is supported only as an optional CSV import/export format.
+
+---
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [`docs/architecture-audit.md`](docs/architecture-audit.md) | **Start here.** Full audit of the legacy system: modules, entities, enumerations, every business rule with citations, dashboards and KPIs, permissions, known defects, and the function-by-function migration map. |
+| [`docs/migration-plan.md`](docs/migration-plan.md) | Logic port procedure, Sheets → PostgreSQL data migration, import engine, cutover and rollback. |
+
+Additional documents (`architecture.md`, `database.md`, `setup.md`, `deployment.md`, `business-rules.md`, `security.md`) are added in the phases that produce them.
+
+---
+
+## Key business rules
+
+Defined in the legacy system, cited in the audit, and preserved exactly. Summarized here because they drive nearly every screen:
+
+- **Client Health** — `On Hold` (hard override) → `Delayed` (any Critical overdue task, ≥3 overdue tasks, or any open Critical issue) → `At Risk` (≥1 overdue task, a Critical/High task due within 3 days, or any open High issue) → `On Track`. Thresholds are per-organization settings.
+- **Weighted Completion %** — tasks count by priority weight (Critical 4, High 3, Medium 2, Low 1) over all non-cancelled tasks. Simple Completion % uses the same population, unweighted.
+- **Task status machine** — 7 statuses with enforced transitions. `Not Started → Completed` is not allowed; `Cancelled` is terminal.
+- **Issue surfacing** — open Critical/High issues, or any open issue past its deadline; sorted most severe, then oldest.
+- **Task generation** — recurring work expands from Service Package templates, deduplicated on `client|serviceArea|taskName|period`, so generation is always safe to re-run and never rewrites history.
+
+See [audit §6](docs/architecture-audit.md) for the authoritative statements with source citations.
+
+---
+
+## Local development
+
+Setup instructions are added in Phase 1, when there is an application to run.

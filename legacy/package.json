@@ -1,0 +1,9 @@
+{
+  "name": "finance-lab-client-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Finance Lab Client Delivery Management System — Google Sheets + Apps Script. This package.json exists only to run the Node unit tests over the pure-logic modules in apps-script/ (see tests/README.md); it is not part of the deployed Apps Script project.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

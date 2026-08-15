@@ -1,0 +1,158 @@
+<style>
+:root {
+  --fl-bg: #f7f8fa;
+  --fl-surface: #ffffff;
+  --fl-border: #e2e5ea;
+  --fl-text: #1f2937;
+  --fl-text-muted: #6b7280;
+  --fl-brand: #1f2937;
+  --fl-accent: #2563eb;
+  --fl-on-track: #d4edda;
+  --fl-on-track-text: #14532d;
+  --fl-at-risk: #fff3cd;
+  --fl-at-risk-text: #7a5b00;
+  --fl-delayed: #f8d7da;
+  --fl-delayed-text: #842029;
+  --fl-on-hold: #e9ecef;
+  --fl-on-hold-text: #495057;
+  --fl-onboarding: #cfe2ff;
+  --fl-onboarding-text: #084298;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--fl-bg);
+  color: var(--fl-text);
+}
+
+#app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+
+#app-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--fl-brand);
+  color: #fff;
+}
+
+#app-header .brand { font-weight: 700; font-size: 16px; letter-spacing: 0.02em; }
+
+#app-nav { display: flex; gap: 4px; flex: 1; }
+
+#app-nav a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+#app-nav a:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+#app-nav a.active { background: rgba(255, 255, 255, 0.16); color: #fff; font-weight: 600; }
+
+.current-user { font-size: 13px; color: rgba(255, 255, 255, 0.75); }
+
+#app-content { flex: 1; padding: 24px; max-width: 1200px; width: 100%; margin: 0 auto; }
+
+.loading, .empty-state, .error-state {
+  color: var(--fl-text-muted);
+  padding: 40px 0;
+  text-align: center;
+}
+
+.error-state { color: var(--fl-delayed-text); }
+
+.page-title { font-size: 20px; font-weight: 700; margin: 0 0 16px; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.kpi-card .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--fl-text-muted); }
+.kpi-card .kpi-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+
+.panel {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.panel h2 { font-size: 15px; margin: 0 0 12px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--fl-border); }
+th { color: var(--fl-text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; }
+tr:last-child td { border-bottom: none; }
+tr.clickable-row { cursor: pointer; }
+tr.clickable-row:hover { background: var(--fl-bg); }
+
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge-on-track, .badge-active, .badge-completed, .badge-received { background: var(--fl-on-track); color: var(--fl-on-track-text); }
+.badge-at-risk, .badge-waiting-client, .badge-medium, .badge-high { background: var(--fl-at-risk); color: var(--fl-at-risk-text); }
+.badge-delayed, .badge-blocked, .badge-critical, .badge-open { background: var(--fl-delayed); color: var(--fl-delayed-text); }
+.badge-on-hold, .badge-not-started, .badge-cancelled, .badge-low { background: var(--fl-on-hold); color: var(--fl-on-hold-text); }
+.badge-onboarding { background: var(--fl-onboarding); color: var(--fl-onboarding-text); }
+
+.btn {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--fl-border);
+  background: var(--fl-surface);
+  color: var(--fl-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-primary { background: var(--fl-accent); border-color: var(--fl-accent); color: #fff; }
+
+select.status-select {
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--fl-border);
+}
+
+.filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-bar input, .filter-bar select {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--fl-border);
+  font-size: 13px;
+}
+
+.back-link { display: inline-block; margin-bottom: 12px; color: var(--fl-accent); text-decoration: none; font-size: 13px; }
+
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.info-grid .info-label { font-size: 11px; text-transform: uppercase; color: var(--fl-text-muted); }
+.info-grid .info-value { font-size: 14px; margin-top: 2px; }
+
+.cc-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+.cc-header-row .page-title { margin: 0; }
+.cc-header-actions { display: flex; align-items: center; gap: 12px; }
+.cc-refreshed { font-size: 12px; color: var(--fl-text-muted); }
+</style>
+<!--
+  REFERENCE ONLY — not loaded by any Apps Script code (no include()
+  mechanism exists anymore; see WebAppEntry.gs). This exact CSS is inlined
+  directly into both Index.html and AccessDenied.html's own <style>
+  blocks instead. Edit those inlined copies AND this file together to
+  keep them in sync; there is no build step that shares them.
+-->
+

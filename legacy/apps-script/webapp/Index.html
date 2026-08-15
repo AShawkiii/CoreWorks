@@ -1,0 +1,2552 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+
+  <style>
+    :root {
+      --fl-bg: #f7f8fa;
+      --fl-surface: #ffffff;
+      --fl-border: #e2e5ea;
+      --fl-text: #1f2937;
+      --fl-text-muted: #6b7280;
+      --fl-brand: #1f2937;
+      --fl-accent: #2563eb;
+
+      --fl-on-track: #d4edda;
+      --fl-on-track-text: #14532d;
+
+      --fl-at-risk: #fff3cd;
+      --fl-at-risk-text: #7a5b00;
+
+      --fl-delayed: #f8d7da;
+      --fl-delayed-text: #842029;
+
+      --fl-on-hold: #e9ecef;
+      --fl-on-hold-text: #495057;
+
+      --fl-onboarding: #cfe2ff;
+      --fl-onboarding-text: #084298;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      background: var(--fl-bg);
+      color: var(--fl-text);
+    }
+
+    #app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #app-header {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px 24px;
+      background: var(--fl-brand);
+      color: #fff;
+    }
+
+    #app-header .brand {
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    #app-nav {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+
+    #app-nav a {
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #app-nav a:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    #app-nav a.active {
+      background: rgba(255, 255, 255, 0.16);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .current-user {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.75);
+      white-space: nowrap;
+    }
+
+    #app-content {
+      flex: 1;
+      padding: 24px;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .loading,
+    .empty-state,
+    .error-state {
+      color: var(--fl-text-muted);
+      padding: 40px 0;
+      text-align: center;
+    }
+
+    .error-state {
+      color: var(--fl-delayed-text);
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 16px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--fl-surface);
+      border: 1px solid var(--fl-border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .kpi-card .kpi-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--fl-text-muted);
+    }
+
+    .kpi-card .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .panel {
+      background: var(--fl-surface);
+      border: 1px solid var(--fl-border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .panel h2 {
+      font-size: 15px;
+      margin: 0 0 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--fl-border);
+    }
+
+    th {
+      color: var(--fl-text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr.clickable-row {
+      cursor: pointer;
+    }
+
+    tr.clickable-row:hover {
+      background: var(--fl-bg);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-on-track,
+    .badge-active,
+    .badge-completed,
+    .badge-received {
+      background: var(--fl-on-track);
+      color: var(--fl-on-track-text);
+    }
+
+    .badge-at-risk,
+      .badge-waiting-on-client,
+      .badge-medium,
+      .badge-high {
+      background: var(--fl-at-risk);
+      color: var(--fl-at-risk-text);
+    }
+
+    .badge-delayed,
+    .badge-blocked,
+    .badge-critical,
+    .badge-open {
+      background: var(--fl-delayed);
+      color: var(--fl-delayed-text);
+    }
+
+    .badge-on-hold,
+    .badge-not-started,
+    .badge-cancelled,
+    .badge-low {
+      background: var(--fl-on-hold);
+      color: var(--fl-on-hold-text);
+    }
+
+    .badge-onboarding {
+      background: var(--fl-onboarding);
+      color: var(--fl-onboarding-text);
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--fl-border);
+      background: var(--fl-surface);
+      color: var(--fl-text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--fl-accent);
+      border-color: var(--fl-accent);
+      color: #fff;
+    }
+
+    select.status-select {
+      font-size: 13px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--fl-border);
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar input,
+    .filter-bar select {
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--fl-border);
+      font-size: 13px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: var(--fl-accent);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .info-grid .info-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--fl-text-muted);
+    }
+
+    .info-grid .info-value {
+      font-size: 14px;
+      margin-top: 2px;
+    }
+
+    .cc-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .cc-header-row .page-title {
+      margin: 0;
+    }
+
+    .cc-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cc-refreshed {
+      font-size: 12px;
+      color: var(--fl-text-muted);
+    }
+
+    @media (max-width: 700px) {
+      #app-header {
+        gap: 10px;
+        padding: 10px 14px;
+      }
+
+      #app-nav {
+        overflow-x: auto;
+      }
+
+      #app-nav a {
+        padding: 7px 9px;
+        font-size: 12px;
+      }
+
+      .current-user {
+        display: none;
+      }
+
+      #app-content {
+        padding: 16px;
+      }
+
+      table {
+        min-width: 800px;
+      }
+
+      .panel {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app-shell">
+
+    <header id="app-header">
+
+      <div class="brand">
+        Finance Lab
+      </div>
+
+      <nav id="app-nav">
+
+        <a href="#control-center" data-route="control-center">
+          Control Center
+        </a>
+
+        <a href="#clients" data-route="clients">
+          Clients
+        </a>
+
+        <a href="#tasks" data-route="tasks">
+          Tasks
+        </a>
+
+      </nav>
+
+      <div class="current-user">
+        <?= currentUserName ?>
+      </div>
+
+    </header>
+
+    <main id="app-content">
+      <p class="loading">Loading…</p>
+    </main>
+
+  </div>
+
+
+  <script>
+
+    /*
+     * ============================================================
+     * FINANCE LAB CLIENT WEB APP
+     * ============================================================
+     *
+     * IMPORTANT:
+     *
+     * This page is designed to run inside a Google Apps Script
+     * Web App deployment.
+     *
+     * The application MUST be opened using the deployed /exec URL.
+     *
+     * Example:
+     *
+     * https://script.google.com/macros/s/DEPLOYMENT_ID/exec
+     *
+     * NOT:
+     *
+     * https://...googleusercontent.com/userCodeAppPanel
+     *
+     * The google.script.run API below is intentionally preserved
+     * because it is the correct server communication mechanism
+     * for Apps Script HTML Service.
+     * ============================================================
+     */
+
+
+    /*
+     * ------------------------------------------------------------
+     * CURRENT USER
+     * ------------------------------------------------------------
+     */
+
+    var CURRENT_USER = {
+    name: '',
+    email: ''
+     };
+
+
+    /*
+     * ------------------------------------------------------------
+     * WEB APP CONTEXT
+     * ------------------------------------------------------------
+     *
+     * We expose the current application URL for future navigation
+     * and diagnostics.
+     *
+     * This does NOT force the page to navigate to itself.
+     *
+     * The actual /exec URL is determined by the deployment.
+     * ------------------------------------------------------------
+     */
+
+    var FINANCE_LAB_APP = {
+      currentUrl: window.location.href,
+      currentOrigin: window.location.origin,
+      isAppsScriptHtmlService:
+        typeof google !== 'undefined' &&
+        google.script &&
+        google.script.run,
+
+      isUserCodeAppPanel:
+        window.location.href.indexOf('userCodeAppPanel') !== -1,
+
+      isScriptGoogleCom:
+        window.location.hostname === 'script.google.com',
+
+      isGoogleUserContent:
+        window.location.hostname.indexOf('googleusercontent.com') !== -1
+    };
+
+
+    /*
+     * ------------------------------------------------------------
+     * MAIN APPLICATION
+     * ------------------------------------------------------------
+     */
+
+    (function () {
+
+      'use strict';
+
+
+      var contentEl =
+        document.getElementById('app-content');
+
+
+      /*
+       * ----------------------------------------------------------
+       * UTILITIES
+       * ----------------------------------------------------------
+       */
+
+      function escapeHtml(value) {
+
+        if (
+          value === null ||
+          value === undefined
+        ) {
+          return '';
+        }
+
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+
+      }
+
+
+      function formatDate(value) {
+
+        if (!value) {
+          return '—';
+        }
+
+        var d = new Date(value);
+
+        if (isNaN(d.getTime())) {
+          return String(value);
+        }
+
+        return d.toLocaleDateString(
+          undefined,
+          {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }
+        );
+
+      }
+
+
+      function formatPercent(value) {
+
+        if (
+          value === null ||
+          value === undefined ||
+          value === ''
+        ) {
+          return '—';
+        }
+
+        return Math.round(
+          Number(value) * 100
+        ) + '%';
+
+      }
+
+
+      function badgeClass(value) {
+
+        return 'badge-' +
+          String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+      }
+
+
+      function badge(value) {
+
+        if (!value) {
+          return '—';
+        }
+
+        return (
+          '<span class="badge ' +
+          badgeClass(value) +
+          '">' +
+          escapeHtml(value) +
+          '</span>'
+        );
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * SERVER CALL
+       * ----------------------------------------------------------
+       *
+       * IMPORTANT:
+       *
+       * Keep google.script.run.
+       *
+       * This communicates directly with the Apps Script backend
+       * associated with the current Web App execution.
+       * ----------------------------------------------------------
+       */
+
+      function callServer(functionName) {
+
+        var args =
+          Array.prototype.slice.call(
+            arguments,
+            1
+          );
+
+        return new Promise(
+          function (resolve, reject) {
+
+            if (
+              typeof google === 'undefined' ||
+              !google.script ||
+              !google.script.run
+            ) {
+
+              reject(
+                new Error(
+                  'Google Apps Script server connection is unavailable.'
+                )
+              );
+
+              return;
+            }
+
+
+            var runner =
+              google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(
+                  function (err) {
+                    reject(err);
+                  }
+                );
+
+
+            if (
+              typeof runner[functionName] !==
+              'function'
+            ) {
+
+              reject(
+                new Error(
+                  'Server function "' +
+                  functionName +
+                  '" was not found.'
+                )
+              );
+
+              return;
+            }
+
+
+            runner[functionName].apply(
+              runner,
+              args
+            );
+
+          }
+        );
+
+      }
+
+
+      function renderError(context, err) {
+
+        var message =
+          (err && err.message)
+            ? err.message
+            : String(err);
+
+        contentEl.innerHTML =
+          '<div class="error-state">' +
+          'Couldn\'t load ' +
+          escapeHtml(context) +
+          ': ' +
+          escapeHtml(message) +
+          '</div>';
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * ROUTER
+       * ----------------------------------------------------------
+       */
+
+      var ROUTES = {};
+
+
+      function currentRouteName() {
+
+        var hash =
+          (window.location.hash || '')
+            .replace(/^#/, '');
+
+        return (
+          hash.split('/')[0] ||
+          'control-center'
+        );
+
+      }
+
+
+      function currentRouteParam() {
+
+        var hash =
+          (window.location.hash || '')
+            .replace(/^#/, '');
+
+        var parts =
+          hash.split('/');
+
+        return parts.length > 1
+          ? decodeURIComponent(parts[1])
+          : null;
+
+      }
+
+
+      function setActiveNav(routeName) {
+
+        var links =
+          document.querySelectorAll(
+            '#app-nav a'
+          );
+
+        for (
+          var i = 0;
+          i < links.length;
+          i++
+        ) {
+
+          links[i]
+            .classList
+            .toggle(
+              'active',
+              links[i]
+                .getAttribute('data-route') ===
+                routeName
+            );
+
+        }
+
+      }
+
+
+      function route() {
+
+        var name =
+          currentRouteName();
+
+        var handler =
+          ROUTES[name];
+
+        setActiveNav(name);
+
+
+        if (!handler) {
+
+          contentEl.innerHTML =
+            '<div class="empty-state">' +
+            'Unknown page.' +
+            '</div>';
+
+          return;
+        }
+
+
+        contentEl.innerHTML =
+          '<p class="loading">Loading…</p>';
+
+        handler(
+          currentRouteParam()
+        );
+
+      }
+
+
+      window.addEventListener(
+        'hashchange',
+        route
+      );
+
+
+      window.addEventListener(
+        'DOMContentLoaded',
+        function () {
+
+          if (!window.location.hash) {
+
+            window.location.hash =
+              '#control-center';
+
+          }
+
+          route();
+
+        }
+      );
+
+
+      /*
+       * ----------------------------------------------------------
+       * CONTROL CENTER
+       * ----------------------------------------------------------
+       */
+
+      var ccLastRefreshed = null;
+
+
+      function renderControlCenter() {
+
+        loadControlCenter();
+
+      }
+
+
+      function loadControlCenter() {
+
+        contentEl.innerHTML =
+          controlCenterShell(
+            '<p class="loading">' +
+            'Loading Control Center…' +
+            '</p>'
+          );
+
+
+        bindControlCenterRefreshButton();
+
+
+        callServer(
+          'getControlCenterViewModel'
+        )
+
+          .then(
+            function (vm) {
+
+              ccLastRefreshed =
+                new Date();
+
+              contentEl.innerHTML =
+                controlCenterShell(
+                  controlCenterBody(vm)
+                );
+
+              bindControlCenterRefreshButton();
+
+              bindClientRowNavigation(
+                '#cc-body'
+              );
+
+            }
+          )
+
+          .catch(
+            function (err) {
+
+              var message =
+                (err && err.message)
+                  ? err.message
+                  : String(err);
+
+
+              contentEl.innerHTML =
+                controlCenterShell(
+
+                  '<div class="error-state">' +
+                  'Couldn\'t load the Control Center: ' +
+                  escapeHtml(message) +
+                  '</div>' +
+
+                  '<div style="text-align:center;">' +
+
+                  '<button class="btn" id="cc-retry-btn">' +
+                  'Retry' +
+                  '</button>' +
+
+                  '</div>'
+
+                );
+
+
+              bindControlCenterRefreshButton();
+
+
+              var retryBtn =
+                document.getElementById(
+                  'cc-retry-btn'
+                );
+
+
+              if (retryBtn) {
+
+                retryBtn.addEventListener(
+                  'click',
+                  loadControlCenter
+                );
+
+              }
+
+            }
+          );
+
+      }
+
+
+      function controlCenterShell(
+        bodyHtml
+      ) {
+
+        var refreshedLabel =
+          ccLastRefreshed
+            ? 'Last refreshed ' +
+              ccLastRefreshed
+                .toLocaleTimeString()
+            : '';
+
+
+        return (
+
+          '<div class="cc-header-row">' +
+
+          '<h1 class="page-title">' +
+          'Control Center' +
+          '</h1>' +
+
+          '<div class="cc-header-actions">' +
+
+          '<span class="cc-refreshed">' +
+          escapeHtml(refreshedLabel) +
+          '</span>' +
+
+          '<button class="btn" id="cc-refresh-btn">' +
+          'Refresh' +
+          '</button>' +
+
+          '</div>' +
+
+          '</div>' +
+
+          '<div id="cc-body">' +
+          bodyHtml +
+          '</div>'
+
+        );
+
+      }
+
+
+      function bindControlCenterRefreshButton() {
+
+        var btn =
+          document.getElementById(
+            'cc-refresh-btn'
+          );
+
+        if (btn) {
+
+          btn.addEventListener(
+            'click',
+            loadControlCenter
+          );
+
+        }
+
+      }
+
+
+      function controlCenterBody(vm) {
+
+        return (
+          renderKpiGrid(vm.kpis) +
+          renderClientHealthPanel(vm.clientHealth) +
+          renderSurfacedIssuesPanel(vm.surfacedIssues)
+        );
+
+      }
+
+
+      function renderKpiGrid(kpis) {
+
+        if (
+          !kpis ||
+          !kpis.length
+        ) {
+
+          return (
+            '<div class="empty-state">' +
+            'No KPI data available.' +
+            '</div>'
+          );
+
+        }
+
+
+        var cards =
+          kpis.map(
+            function (k) {
+
+              var value =
+                k.format === 'percent'
+                  ? formatPercent(k.value)
+                  : escapeHtml(k.value);
+
+
+              return (
+
+                '<div class="kpi-card">' +
+
+                '<div class="kpi-label">' +
+                escapeHtml(k.label) +
+                '</div>' +
+
+                '<div class="kpi-value">' +
+                value +
+                '</div>' +
+
+                '</div>'
+
+              );
+
+            }
+          ).join('');
+
+
+        return (
+          '<div class="kpi-grid">' +
+          cards +
+          '</div>'
+        );
+
+      }
+
+
+      function renderClientHealthPanel(
+        rows
+      ) {
+
+        var body;
+
+
+        if (
+          !rows ||
+          !rows.length
+        ) {
+
+          body =
+            '<div class="empty-state">' +
+            'No active clients yet.' +
+            '</div>';
+
+        } else {
+
+          var headerRow =
+
+            '<tr>' +
+            '<th>Client</th>' +
+            '<th>Package</th>' +
+            '<th>Account Owner</th>' +
+            '<th>Health</th>' +
+            '<th>Completion %</th>' +
+            '<th>Overdue</th>' +
+            '<th>Waiting on Client</th>' +
+            '<th>Open Issues</th>' +
+            '<th>Next Deadline</th>' +
+            '</tr>';
+
+
+          var dataRows =
+            rows.map(
+              function (r) {
+
+                return (
+
+                  '<tr class="clickable-row" data-client-id="' +
+                  escapeHtml(r.clientId) +
+                  '">' +
+
+                  '<td>' +
+                  escapeHtml(r.clientName) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(r.servicePackage) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(r.accountManager) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(r.health) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatPercent(r.completionPct) +
+                  '</td>' +
+
+                  '<td>' +
+                  r.overdueTasks +
+                  '</td>' +
+
+                  '<td>' +
+                  r.waitingOnClient +
+                  '</td>' +
+
+                  '<td>' +
+                  r.openIssues +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(r.nextDeadline) +
+                  '</td>' +
+
+                  '</tr>'
+
+                );
+
+              }
+            ).join('');
+
+
+          body =
+            '<table>' +
+            headerRow +
+            dataRows +
+            '</table>';
+
+        }
+
+
+        return (
+          '<div class="panel">' +
+          '<h2>Client Health</h2>' +
+          body +
+          '</div>'
+        );
+
+      }
+
+
+      function renderSurfacedIssuesPanel(
+        rows
+      ) {
+
+        var body;
+
+
+        if (
+          !rows ||
+          !rows.length
+        ) {
+
+          body =
+            '<div class="empty-state">' +
+            'No issues need attention right now.' +
+            '</div>';
+
+        } else {
+
+          var headerRow =
+
+            '<tr>' +
+            '<th>Client</th>' +
+            '<th>Issue</th>' +
+            '<th>Severity</th>' +
+            '<th>Status</th>' +
+            '<th>Owner</th>' +
+            '<th>Days Open</th>' +
+            '<th>Due Date</th>' +
+            '</tr>';
+
+
+          var dataRows =
+            rows.map(
+              function (r) {
+
+                return (
+
+                  '<tr class="clickable-row" data-client-id="' +
+                  escapeHtml(r.clientId) +
+                  '">' +
+
+                  '<td>' +
+                  escapeHtml(r.clientName) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(r.issue) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(r.severity) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(r.status) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(r.owner) +
+                  '</td>' +
+
+                  '<td>' +
+                  (r.daysOpen === null
+                    ? '—'
+                    : r.daysOpen) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(r.dueDate) +
+                  '</td>' +
+
+                  '</tr>'
+
+                );
+
+              }
+            ).join('');
+
+
+          body =
+            '<table>' +
+            headerRow +
+            dataRows +
+            '</table>';
+
+        }
+
+
+        return (
+          '<div class="panel">' +
+          '<h2>Issues Needing Attention</h2>' +
+          body +
+          '</div>'
+        );
+
+      }
+
+
+      function bindClientRowNavigation(
+        containerSelector
+      ) {
+
+        var rows =
+          document.querySelectorAll(
+            containerSelector +
+            ' tr.clickable-row'
+          );
+
+
+        for (
+          var i = 0;
+          i < rows.length;
+          i++
+        ) {
+
+          rows[i].addEventListener(
+            'click',
+            function () {
+
+              var clientId =
+                this.getAttribute(
+                  'data-client-id'
+                );
+
+
+              if (clientId) {
+
+                window.location.hash =
+                  '#clients/' +
+                  encodeURIComponent(
+                    clientId
+                  );
+
+              }
+
+            }
+          );
+
+        }
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * CLIENTS
+       * ----------------------------------------------------------
+       */
+
+      var clientsListCache = null;
+
+      var clientsFilterState = {
+        search: '',
+        status: '',
+        health: ''
+      };
+
+
+      function renderClients(
+        clientId
+      ) {
+
+        if (clientId) {
+
+          loadClientDetail(
+            clientId
+          );
+
+        } else {
+
+          loadClientsList();
+
+        }
+
+      }
+
+
+      function loadClientsList() {
+
+        contentEl.innerHTML =
+          clientsListShell(
+            '<p class="loading">' +
+            'Loading clients…' +
+            '</p>'
+          );
+
+
+        callServer(
+          'getClientsListViewModel'
+        )
+
+          .then(
+            function (list) {
+
+              clientsListCache =
+                list || [];
+
+              renderClientsListBody();
+
+            }
+          )
+
+          .catch(
+            function (err) {
+
+              var message =
+                (err && err.message)
+                  ? err.message
+                  : String(err);
+
+
+              contentEl.innerHTML =
+                clientsListShell(
+
+                  '<div class="error-state">' +
+                  'Couldn\'t load clients: ' +
+                  escapeHtml(message) +
+                  '</div>' +
+
+                  '<div style="text-align:center;">' +
+
+                  '<button class="btn" id="clients-retry-btn">' +
+                  'Retry' +
+                  '</button>' +
+
+                  '</div>'
+
+                );
+
+
+              var retryBtn =
+                document.getElementById(
+                  'clients-retry-btn'
+                );
+
+
+              if (retryBtn) {
+
+                retryBtn.addEventListener(
+                  'click',
+                  loadClientsList
+                );
+
+              }
+
+            }
+          );
+
+      }
+
+
+      function clientsListShell(
+        bodyHtml
+      ) {
+
+        return (
+
+          '<div class="cc-header-row">' +
+
+          '<h1 class="page-title">' +
+          'Clients' +
+          '</h1>' +
+
+          '<div class="cc-header-actions">' +
+
+          '<button class="btn" id="clients-refresh-btn">' +
+          'Refresh' +
+          '</button>' +
+
+          '</div>' +
+
+          '</div>' +
+
+          '<div class="filter-bar">' +
+
+          '<input type="text" id="clients-search-input" placeholder="Search by name or ID…">' +
+
+          '<select id="clients-status-filter">' +
+          '<option value="">All Statuses</option>' +
+          '</select>' +
+
+          '<select id="clients-health-filter">' +
+          '<option value="">All Health</option>' +
+          '</select>' +
+
+          '</div>' +
+
+          '<div id="clients-body">' +
+          bodyHtml +
+          '</div>'
+
+        );
+
+      }
+
+
+      function renderClientsListBody() {
+
+        var refreshBtn =
+          document.getElementById(
+            'clients-refresh-btn'
+          );
+
+
+        if (refreshBtn) {
+
+          refreshBtn.addEventListener(
+            'click',
+            loadClientsList
+          );
+
+        }
+
+
+        populateClientsFilterOptions();
+
+        wireClientsFilterControls();
+
+        renderClientsTableOnly();
+
+      }
+
+
+      function populateClientsFilterOptions() {
+
+        setSelectOptions(
+          'clients-status-filter',
+          uniqueSortedValues(
+            clientsListCache,
+            'contractStatus'
+          ),
+          clientsFilterState.status
+        );
+
+
+        setSelectOptions(
+          'clients-health-filter',
+          uniqueSortedValues(
+            clientsListCache,
+            'health'
+          ),
+          clientsFilterState.health
+        );
+
+      }
+
+
+      function uniqueSortedValues(
+        rows,
+        key
+      ) {
+
+        var seen = {};
+        var out = [];
+
+
+        rows.forEach(
+          function (row) {
+
+            var v = row[key];
+
+            if (
+              v &&
+              !seen[v]
+            ) {
+
+              seen[v] = true;
+              out.push(v);
+
+            }
+
+          }
+        );
+
+
+        return out.sort();
+
+      }
+
+
+      function setSelectOptions(
+        selectId,
+        values,
+        selectedValue
+      ) {
+
+        var select =
+          document.getElementById(
+            selectId
+          );
+
+
+        if (!select) {
+          return;
+        }
+
+
+        select.innerHTML =
+          '<option value="">All</option>' +
+
+          values.map(
+            function (v) {
+
+              var selectedAttr =
+                v === selectedValue
+                  ? ' selected'
+                  : '';
+
+
+              return (
+                '<option value="' +
+                escapeHtml(v) +
+                '"' +
+                selectedAttr +
+                '>' +
+                escapeHtml(v) +
+                '</option>'
+              );
+
+            }
+          ).join('');
+
+      }
+
+
+      function wireClientsFilterControls() {
+
+        var searchInput =
+          document.getElementById(
+            'clients-search-input'
+          );
+
+        var statusSelect =
+          document.getElementById(
+            'clients-status-filter'
+          );
+
+        var healthSelect =
+          document.getElementById(
+            'clients-health-filter'
+          );
+
+
+        if (searchInput) {
+
+          searchInput.value =
+            clientsFilterState.search;
+
+
+          searchInput.addEventListener(
+            'input',
+            function () {
+
+              clientsFilterState.search =
+                this.value;
+
+              renderClientsTableOnly();
+
+            }
+          );
+
+        }
+
+
+        if (statusSelect) {
+
+          statusSelect.value =
+            clientsFilterState.status;
+
+
+          statusSelect.addEventListener(
+            'change',
+            function () {
+
+              clientsFilterState.status =
+                this.value;
+
+              renderClientsTableOnly();
+
+            }
+          );
+
+        }
+
+
+        if (healthSelect) {
+
+          healthSelect.value =
+            clientsFilterState.health;
+
+
+          healthSelect.addEventListener(
+            'change',
+            function () {
+
+              clientsFilterState.health =
+                this.value;
+
+              renderClientsTableOnly();
+
+            }
+          );
+
+        }
+
+      }
+
+
+      function renderClientsTableOnly() {
+
+        var filtered =
+          applyClientsFilters(
+            clientsListCache || []
+          );
+
+
+        var body =
+          document.getElementById(
+            'clients-body'
+          );
+
+
+        if (body) {
+
+          body.innerHTML =
+            renderClientsTable(
+              filtered
+            );
+
+        }
+
+
+        bindClientRowNavigation(
+          '#clients-body'
+        );
+
+      }
+
+
+      function applyClientsFilters(
+        list
+      ) {
+
+        var search =
+          clientsFilterState.search
+            .trim()
+            .toLowerCase();
+
+
+        return list.filter(
+          function (c) {
+
+            if (
+              clientsFilterState.status &&
+              c.contractStatus !==
+              clientsFilterState.status
+            ) {
+
+              return false;
+
+            }
+
+
+            if (
+              clientsFilterState.health &&
+              c.health !==
+              clientsFilterState.health
+            ) {
+
+              return false;
+
+            }
+
+
+            if (search) {
+
+              var haystack =
+                (
+                  String(c.clientName) +
+                  ' ' +
+                  String(c.clientId)
+                ).toLowerCase();
+
+
+              if (
+                haystack.indexOf(search) === -1
+              ) {
+
+                return false;
+
+              }
+
+            }
+
+
+            return true;
+
+          }
+        );
+
+      }
+
+
+      function renderClientsTable(
+        rows
+      ) {
+
+        if (!rows.length) {
+
+          return (
+            '<div class="empty-state">' +
+            'No clients match your filters.' +
+            '</div>'
+          );
+
+        }
+
+
+        var headerRow =
+
+          '<tr>' +
+          '<th>Client Name</th>' +
+          '<th>Client ID</th>' +
+          '<th>Service Package</th>' +
+          '<th>Account Manager</th>' +
+          '<th>Contract Status</th>' +
+          '<th>Health</th>' +
+          '<th>Completion %</th>' +
+          '<th>Next Deadline</th>' +
+          '</tr>';
+
+
+        var dataRows =
+          rows.map(
+            function (c) {
+
+              return (
+
+                '<tr class="clickable-row" data-client-id="' +
+                escapeHtml(c.clientId) +
+                '">' +
+
+                '<td>' +
+                escapeHtml(c.clientName) +
+                '</td>' +
+
+                '<td>' +
+                escapeHtml(c.clientId) +
+                '</td>' +
+
+                '<td>' +
+                escapeHtml(c.servicePackage) +
+                '</td>' +
+
+                '<td>' +
+                escapeHtml(c.accountManager) +
+                '</td>' +
+
+                '<td>' +
+                badge(c.contractStatus) +
+                '</td>' +
+
+                '<td>' +
+                badge(c.health) +
+                '</td>' +
+
+                '<td>' +
+                formatPercent(c.completionPct) +
+                '</td>' +
+
+                '<td>' +
+                formatDate(c.nextDeadline) +
+                '</td>' +
+
+                '</tr>'
+
+              );
+
+            }
+          ).join('');
+
+
+        return (
+          '<table>' +
+          headerRow +
+          dataRows +
+          '</table>'
+        );
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * CLIENT DETAIL
+       * ----------------------------------------------------------
+       */
+
+      function loadClientDetail(
+        clientId
+      ) {
+
+        contentEl.innerHTML =
+          clientDetailShell(
+            '<p class="loading">' +
+            'Loading client…' +
+            '</p>'
+          );
+
+
+        callServer(
+          'getClientDetailViewModel',
+          clientId
+        )
+
+          .then(
+            function (detail) {
+
+              if (!detail) {
+
+                contentEl.innerHTML =
+                  clientDetailShell(
+
+                    '<div class="empty-state">' +
+
+                    'Client "' +
+                    escapeHtml(clientId) +
+                    '" was not found.' +
+
+                    '</div>'
+
+                  );
+
+                return;
+
+              }
+
+
+              contentEl.innerHTML =
+                clientDetailShell(
+                  clientDetailBody(detail)
+                );
+
+            }
+          )
+
+          .catch(
+            function (err) {
+
+              var message =
+                (err && err.message)
+                  ? err.message
+                  : String(err);
+
+
+              contentEl.innerHTML =
+                clientDetailShell(
+
+                  '<div class="error-state">' +
+                  'Couldn\'t load this client: ' +
+                  escapeHtml(message) +
+                  '</div>' +
+
+                  '<div style="text-align:center;">' +
+
+                  '<button class="btn" id="client-detail-retry-btn">' +
+                  'Retry' +
+                  '</button>' +
+
+                  '</div>'
+
+                );
+
+
+              var retryBtn =
+                document.getElementById(
+                  'client-detail-retry-btn'
+                );
+
+
+              if (retryBtn) {
+
+                retryBtn.addEventListener(
+                  'click',
+                  function () {
+
+                    loadClientDetail(
+                      clientId
+                    );
+
+                  }
+                );
+
+              }
+
+            }
+          );
+
+      }
+
+
+      function clientDetailShell(
+        bodyHtml
+      ) {
+
+        return (
+
+          '<a class="back-link" href="#clients">' +
+          '&larr; Back to Clients' +
+          '</a>' +
+
+          '<div id="client-detail-body">' +
+          bodyHtml +
+          '</div>'
+
+        );
+
+      }
+
+
+      function clientDetailBody(
+        detail
+      ) {
+
+        return (
+
+          '<h1 class="page-title">' +
+          escapeHtml(detail.clientName) +
+          '</h1>' +
+
+          clientDetailInfoPanel(detail) +
+
+          clientDetailTasksPanel(
+            detail.tasks
+          ) +
+
+          clientDetailIssuesPanel(
+            detail.issues
+          ) +
+
+          clientDetailRequestsPanel(
+            detail.requests
+          )
+
+        );
+
+      }
+
+
+      function clientDetailInfoRow(
+        label,
+        valueHtml
+      ) {
+
+        return (
+
+          '<div>' +
+
+          '<div class="info-label">' +
+          escapeHtml(label) +
+          '</div>' +
+
+          '<div class="info-value">' +
+          (valueHtml || '—') +
+          '</div>' +
+
+          '</div>'
+
+        );
+
+      }
+
+
+      function clientDetailInfoPanel(
+        detail
+      ) {
+
+        var fieldsHtml =
+
+          clientDetailInfoRow(
+            'Client ID',
+            escapeHtml(detail.clientId)
+          ) +
+
+          clientDetailInfoRow(
+            'Health',
+            badge(detail.health)
+          ) +
+
+          clientDetailInfoRow(
+            'Simple Completion %',
+            formatPercent(
+              detail.simpleCompletionPct
+            )
+          ) +
+
+          clientDetailInfoRow(
+            'Weighted Completion %',
+            formatPercent(
+              detail.weightedCompletionPct
+            )
+          ) +
+
+          clientDetailInfoRow(
+            'Account Manager',
+            escapeHtml(detail.accountManager)
+          ) +
+
+          clientDetailInfoRow(
+            'Service Package',
+            escapeHtml(detail.servicePackage)
+          ) +
+
+          clientDetailInfoRow(
+            'Contract Status',
+            badge(detail.contractStatus)
+          ) +
+
+          clientDetailInfoRow(
+            'Next Deadline',
+            formatDate(detail.nextDeadline)
+          ) +
+
+          clientDetailInfoRow(
+            'Client Contact',
+            escapeHtml(detail.clientContact)
+          ) +
+
+          clientDetailInfoRow(
+            'Email',
+            escapeHtml(detail.email)
+          ) +
+
+          clientDetailInfoRow(
+            'Phone',
+            escapeHtml(detail.phone)
+          ) +
+
+          clientDetailInfoRow(
+            'Industry',
+            escapeHtml(detail.industry)
+          ) +
+
+          clientDetailInfoRow(
+            'Last Activity',
+            formatDate(detail.lastActivity)
+          );
+
+
+        var notesHtml =
+          detail.notes
+
+            ? (
+
+              '<div style="margin-top:12px;">' +
+
+              '<div class="info-label">' +
+              'Notes' +
+              '</div>' +
+
+              '<div class="info-value">' +
+              escapeHtml(detail.notes) +
+              '</div>' +
+
+              '</div>'
+
+            )
+
+            : '';
+
+
+        return (
+
+          '<div class="panel">' +
+
+          '<h2>Client Information</h2>' +
+
+          '<div class="info-grid">' +
+          fieldsHtml +
+          '</div>' +
+
+          notesHtml +
+
+          '</div>'
+
+        );
+
+      }
+
+
+      function clientDetailTasksPanel(
+        tasks
+      ) {
+
+        var body;
+
+
+        if (
+          !tasks ||
+          !tasks.length
+        ) {
+
+          body =
+            '<div class="empty-state">' +
+            'No open tasks for this client.' +
+            '</div>';
+
+        } else {
+
+          var headerRow =
+
+            '<tr>' +
+            '<th>Task</th>' +
+            '<th>Service Area</th>' +
+            '<th>Status</th>' +
+            '<th>Priority</th>' +
+            '<th>Assigned To</th>' +
+            '<th>Due Date</th>' +
+            '<th>Days Remaining</th>' +
+            '</tr>';
+
+
+          var dataRows =
+            tasks.map(
+              function (t) {
+
+                return (
+
+                  '<tr>' +
+
+                  '<td>' +
+                  escapeHtml(t.taskName) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(t.serviceArea) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(t.status) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(t.priority) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(t.assignedTo) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(t.dueDate) +
+                  '</td>' +
+
+                  '<td>' +
+
+                  (
+                    t.daysRemaining === '' ||
+                    t.daysRemaining === null ||
+                    typeof t.daysRemaining === 'undefined'
+                      ? '—'
+                      : t.daysRemaining
+                  ) +
+
+                  '</td>' +
+
+                  '</tr>'
+
+                );
+
+              }
+            ).join('');
+
+
+          body =
+            '<table>' +
+            headerRow +
+            dataRows +
+            '</table>';
+
+        }
+
+
+        return (
+
+          '<div class="panel">' +
+
+          '<h2>Client Tasks</h2>' +
+
+          body +
+
+          '</div>'
+
+        );
+
+      }
+
+
+      function clientDetailIssuesPanel(
+        issues
+      ) {
+
+        var body;
+
+
+        if (
+          !issues ||
+          !issues.length
+        ) {
+
+          body =
+            '<div class="empty-state">' +
+            'No open issues for this client.' +
+            '</div>';
+
+        } else {
+
+          var headerRow =
+
+            '<tr>' +
+            '<th>Issue</th>' +
+            '<th>Category</th>' +
+            '<th>Severity</th>' +
+            '<th>Status</th>' +
+            '<th>Owner</th>' +
+            '<th>Date Raised</th>' +
+            '<th>Deadline</th>' +
+            '</tr>';
+
+
+          var dataRows =
+            issues.map(
+              function (i) {
+
+                return (
+
+                  '<tr>' +
+
+                  '<td>' +
+                  escapeHtml(i.issue) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(i.category) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(i.severity) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(i.status) +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(i.owner) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(i.dateRaised) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(i.deadline) +
+                  '</td>' +
+
+                  '</tr>'
+
+                );
+
+              }
+            ).join('');
+
+
+          body =
+            '<table>' +
+            headerRow +
+            dataRows +
+            '</table>';
+
+        }
+
+
+        return (
+
+          '<div class="panel">' +
+
+          '<h2>Open Issues</h2>' +
+
+          body +
+
+          '</div>'
+
+        );
+
+      }
+
+
+      function clientDetailRequestsPanel(
+        requests
+      ) {
+
+        var body;
+
+
+        if (
+          !requests ||
+          !requests.length
+        ) {
+
+          body =
+            '<div class="empty-state">' +
+            'No open requests for this client.' +
+            '</div>';
+
+        } else {
+
+          var headerRow =
+
+            '<tr>' +
+            '<th>Request</th>' +
+            '<th>Status</th>' +
+            '<th>Requested Date</th>' +
+            '<th>Days Waiting</th>' +
+            '<th>Assigned To</th>' +
+            '</tr>';
+
+
+          var dataRows =
+            requests.map(
+              function (r) {
+
+                var waitingLabel =
+
+                  (
+                    r.daysWaiting === null ||
+                    typeof r.daysWaiting === 'undefined'
+                  )
+
+                    ? '—'
+                    : r.daysWaiting;
+
+
+                if (
+                  r.daysWaitingBucket
+                ) {
+
+                  waitingLabel +=
+                    ' (' +
+                    escapeHtml(
+                      r.daysWaitingBucket
+                    ) +
+                    ')';
+
+                }
+
+
+                return (
+
+                  '<tr>' +
+
+                  '<td>' +
+                  escapeHtml(r.request) +
+                  '</td>' +
+
+                  '<td>' +
+                  badge(r.status) +
+                  '</td>' +
+
+                  '<td>' +
+                  formatDate(r.requestedDate) +
+                  '</td>' +
+
+                  '<td>' +
+                  waitingLabel +
+                  '</td>' +
+
+                  '<td>' +
+                  escapeHtml(r.assignedTo) +
+                  '</td>' +
+
+                  '</tr>'
+
+                );
+
+              }
+            ).join('');
+
+
+          body =
+            '<table>' +
+            headerRow +
+            dataRows +
+            '</table>';
+
+        }
+
+
+        return (
+
+          '<div class="panel">' +
+
+          '<h2>Client Requests</h2>' +
+
+          body +
+
+          '</div>'
+
+        );
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * TASKS
+       * ----------------------------------------------------------
+       */
+
+      function renderTasks() {
+
+        contentEl.innerHTML =
+
+          '<h1 class="page-title">' +
+          'Tasks' +
+          '</h1>' +
+
+          '<div class="empty-state">' +
+          '🚧 Coming soon — Increment 4 wires this up to the live spreadsheet.' +
+          '</div>';
+
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * REGISTER ROUTES
+       * ----------------------------------------------------------
+       *
+       * IMPORTANT:
+       * Routes are registered AFTER the functions exist.
+       * ----------------------------------------------------------
+       */
+
+      ROUTES = {
+
+        'control-center':
+          renderControlCenter,
+
+        'clients':
+          renderClients,
+
+        'tasks':
+          renderTasks
+
+      };
+
+
+      /*
+       * ----------------------------------------------------------
+       * PUBLIC API
+       * ----------------------------------------------------------
+       */
+
+      window.FL = {
+
+        callServer:
+          callServer,
+
+        escapeHtml:
+          escapeHtml,
+
+        formatDate:
+          formatDate,
+
+        formatPercent:
+          formatPercent,
+
+        badge:
+          badge,
+
+        badgeClass:
+          badgeClass,
+
+        renderError:
+          renderError,
+
+        contentEl:
+          contentEl,
+
+        appContext:
+          FINANCE_LAB_APP
+
+      };
+
+
+    })();
+
+  </script>
+
+</body>
+</html>
