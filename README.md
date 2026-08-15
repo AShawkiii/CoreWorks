@@ -21,8 +21,9 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **8** | Client Dashboard | ✅ **Complete** |
 | **9** | Team Dashboard and Management Report | ✅ **Complete** |
 | **10** | Monthly Close, template catalog, scheduled generation jobs | ✅ **Complete** |
-| 11 | Activity Log and Notifications | Next |
-| 12–14 | Theming, import/export, testing and deployment | Pending |
+| **11** | Activity Log and Notifications | ✅ **Complete** |
+| 12 | Theming, branding, and appearance | Next |
+| 13–14 | Import/export, testing and deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -66,6 +67,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase8-client-dashboard.md`](docs/phase8-client-dashboard.md) | The Client Dashboard: the seven sections and their two different scopes, and a conflict between legacy's own two task-sort implementations. |
 | [`docs/phase9-team-management.md`](docs/phase9-team-management.md) | Team Dashboard and Management Report: the workload rules, the four report sections, and the audit D4 fix to how assignments are matched. |
 | [`docs/phase10-close-templates-jobs.md`](docs/phase10-close-templates-jobs.md) | Monthly Close, the template catalog, and the scheduled jobs: two completion figures, the blank-stage trap, and why the daily recalculation is necessary rather than convenient. |
+| [`docs/phase11-activity-notifications.md`](docs/phase11-activity-notifications.md) | The Activity Log and Notifications: why one is a reader over ported rules and the other is net-new, the four delivery rules, and the three kinds of actor an entry can have. |
 
 `deployment.md` arrives with Phase 14.
 
@@ -112,6 +114,10 @@ npm run job -- monthly-generation 2026-09
 
 Both are safe to re-run and both sweep every organization. The runner exits
 non-zero if any tenant failed, so a partial run cannot look like success.
+
+The daily pass also sends due-soon and overdue reminders, for the same reason
+it recalculates health: a deadline passes because the date rolled over, not
+because anyone edited anything. Re-running it the same day sends nothing twice.
 
 Full instructions, including PostgreSQL setup and troubleshooting, are in
 [`docs/setup.md`](docs/setup.md).

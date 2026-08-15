@@ -198,6 +198,7 @@ model Organization {
   activityLogs     ActivityLog[]
   auditLogs        AuditLog[]
   notifications    Notification[]
+  notificationPrefs NotificationPreference[]
   monthlyCloses    MonthlyClose[]
   comments         Comment[]
   attachments      Attachment[]
@@ -297,6 +298,7 @@ model User {
   activityLogs         ActivityLog[]
   auditLogs            AuditLog[]
   notifications        Notification[]
+  notificationPrefs    NotificationPreference[]
   comments             Comment[]
   attachments          Attachment[]
   dashboardPreferences DashboardPreference[]
@@ -877,6 +879,29 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([organizationId])
+}
+
+/// Net-new (audit §15). Per-user opt-out from a notification type, scoped to
+/// the organization so someone who belongs to two tenants can be noisy in one
+/// and quiet in the other.
+///
+/// An ABSENT row means enabled. Storing only explicit choices means a new
+/// notification type reaches everyone the day it ships, with no backfill and
+/// no silent gap while rows are missing.
+model NotificationPreference {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String           @db.Uuid
+  type           NotificationType
+  enabled        Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, type])
+  @@index([userId])
 }
 
 /// Master prompt §43. Nullable FK per target rather than a polymorphic pair,

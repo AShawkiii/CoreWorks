@@ -159,6 +159,23 @@ Two separate logs, on purpose:
 - **`ActivityLog`** — the legacy business trail (audit §6.14). Member added, role changed, organization updated. Carries a `userEmail` snapshot so entries stay readable after a user is deleted.
 - **`AuditLog`** — technical/security events: sign-ins, permission changes, exports, with IP and user agent.
 
+`ActivityLog` is readable at `/activity`, gated on `activity:view` — Owner,
+Admin, and Manager. It is **append-only**: the query module exports no write
+function and there is no write schema, both asserted by tests, so the screen
+that displays the trail cannot become a way to edit it. A scheduled run is
+recorded as the system (null `userId` plus a `system@coreworks.local` email
+snapshot) and is distinguished on screen from a person since removed, who also
+has a null `userId` but a real email beside it.
+
+`AuditLog` has no screen yet — see the table below.
+
+Notifications are **not** governed by the role matrix. They are addressed to a
+user id and every query is scoped by it, so `/notifications` and
+`/settings/notifications` require authentication only: no role grants sight of
+another person's, and none is denied their own. Read and preference mutations
+scope their `where` by the user id rather than checking ownership after
+loading, so the unsafe version cannot be written by accident.
+
 ## Not yet implemented
 
 Named here so their absence is a decision rather than an oversight.
@@ -167,7 +184,8 @@ Named here so their absence is a decision rather than an oversight.
 |---|---|
 | Rate limiting on sign-in and password reset | Phase 13 |
 | PostgreSQL row-level security as defence in depth | Phase 13 |
-| Email delivery for reset links and invitations (tokens are issued and stored now; delivery is not) | Phase 11 |
+| Email delivery for reset links and invitations (tokens are issued and stored now; delivery is not). Phase 11 did not add it: with no mail transport in the codebase, notifications are delivered in-app only, and the settings page says so rather than offering an email toggle that would do nothing | Phase 14, with deployment configuration |
+| A reader for `AuditLog`, distinct from the Activity Log screen delivered in Phase 11 | Phase 13, alongside the sign-in and export events that populate it |
 | Multi-factor authentication | Post-v1 |
 | Session revocation on role change (a JWT keeps its claims until expiry; the role is re-read from the database on every request, so this affects session lifetime, not permissions) | Phase 13 |
 | Content Security Policy headers | Phase 13 |

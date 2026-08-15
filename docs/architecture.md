@@ -40,7 +40,7 @@ src/
     theme/              Theme script and toggle
     ui/                 Design-system primitives
   lib/
-    domain/             Enums, labels, IDs, template catalog — legacy vocabulary
+    domain/             Enums, labels, IDs, template catalog, pure rules — legacy vocabulary
     validation/         Zod schemas, shared by client and server
     db.ts               Prisma singleton
     navigation.ts       Sidebar structure (serializable data only)

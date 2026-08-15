@@ -16,6 +16,7 @@ import { ForbiddenError, type OrgContext } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { nextDisplayId } from "@/server/services/ids";
 import { recalculateClientHealth } from "@/server/services/health";
+import { notifyTaskAssigned } from "@/server/services/notifications";
 import { recalculateClientProgress } from "@/server/services/progress";
 
 /**
@@ -161,6 +162,14 @@ export async function createTask(
       },
       db,
     );
+  }
+
+  // Phase 11. Gated on the same `skipLog` flag as the activity entry, and for
+  // the same reason: bulk generation creates hundreds of tasks in one pass,
+  // and a notification per row would bury every real one. Generation instead
+  // sends one summary notice (see `notifySystem` in the monthly job).
+  if (assignedToId && !options.skipLog) {
+    await notifyTaskAssigned(ctx, task.id);
   }
 
   return task;

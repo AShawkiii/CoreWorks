@@ -109,6 +109,27 @@ Two tables, on purpose:
 - **`ActivityLog`** — the legacy business trail (audit §6.14). What users see: client added, task status changed, health changed. Carries a `userEmail` snapshot so history survives user deletion.
 - **`AuditLog`** — net-new security/technical trail: sign-ins, permission changes, exports, settings changes, with IP and user agent.
 
+`ActivityLog` is written by exactly one function and read by a module with no
+write path, so the trail cannot be edited through the screen that shows it.
+A row written by a scheduled job carries a null `userId` beside a
+`system@coreworks.local` email; a row whose author was later deleted carries a
+null `userId` beside their real email. The two are told apart by the email, not
+by the null.
+
+## Notifications
+
+`Notification` is net-new (audit §15) and is addressed to a **`userId`**, not
+to an `OrganizationMember` — a notification belongs to a person, while work is
+assigned to a seat. Emitters resolve member → user, scoped to the organization
+and to active members, so a member id from another tenant resolves to nothing.
+
+`NotificationPreference` is unique on `(organizationId, userId, type)` and
+stores **only explicit choices**: an absent row means enabled. That way a
+notification type added in a later phase reaches everyone the day it ships,
+with no backfill and no silent gap while rows are missing. Scoping it to the
+organization as well as the user lets someone who belongs to two tenants be
+noisy in one and quiet in the other.
+
 ## Soft deletion
 
 `deletedAt` on `Organization`, `User`, `OrganizationMember`, `Client`,

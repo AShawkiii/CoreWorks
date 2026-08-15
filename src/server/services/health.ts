@@ -10,6 +10,7 @@ import { computeNextDeadline } from "@/lib/domain/progress";
 import type { HealthStats } from "@/lib/domain/types";
 import type { OrgContext } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
+import { notifyClientHealthChanged } from "@/server/services/notifications";
 import {
   issueSelect,
   taskSelect,
@@ -129,6 +130,12 @@ export async function recalculateClientHealth(
     previousValue: CLIENT_HEALTH_LABELS[current.health],
     newValue: CLIENT_HEALTH_LABELS[newHealth],
   });
+
+  // Phase 11. Sits inside the same "only when it actually changed" guard as
+  // the activity entry above, so the nightly pass that re-confirms On Track
+  // notifies nobody. Recipients are the client's account manager and backup —
+  // see the emitter for why it is not everyone with client:view.
+  await notifyClientHealthChanged(ctx, clientId, current.health, newHealth);
 
   return newHealth;
 }

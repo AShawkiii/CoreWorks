@@ -4,6 +4,10 @@ import { formatPeriod } from "@/lib/domain/date";
 import type { Period } from "@/lib/domain/types";
 import { systemContext, type OrgContext } from "@/server/context";
 import { recalculateAllClientsHealth } from "@/server/services/health";
+import {
+  notifyDueAndOverdueTasks,
+  notifySystem,
+} from "@/server/services/notifications";
 import { recalculateAllClientsProgress } from "@/server/services/progress";
 import { generateMonthlyTasks } from "@/server/services/task-generation";
 
@@ -63,13 +67,24 @@ export async function runDailyRecalculation(
   );
   const healthChanged = await recalculateAllClientsHealth(ctx, today);
 
+  // Phase 11, and third in order for a reason: the health pass above may emit
+  // its own notifications, and running deadline reminders first would tell
+  // someone their task is overdue before the client it belongs to has been
+  // marked Delayed for that same fact.
+  const reminders = await notifyDueAndOverdueTasks(ctx, today);
+
   return {
     job: "daily-recalculation",
     organizationId: ctx.organizationId,
     organizationSlug: ctx.organizationSlug,
     startedAt,
     finishedAt: new Date(),
-    details: { clientsProcessed, healthChanged },
+    details: {
+      clientsProcessed,
+      healthChanged,
+      dueSoonNotices: reminders.dueSoon,
+      overdueNotices: reminders.overdue,
+    },
   };
 }
 
@@ -90,6 +105,18 @@ export async function runMonthlyGeneration(
   const period = targetPeriod ?? formatPeriod(today);
 
   const result = await generateMonthlyTasks(ctx, period, today);
+
+  // Phase 11. Generation runs at 03:00 with nobody watching, and creates the
+  // month's work for the whole book. Owners and admins are told the outcome
+  // because it is theirs to check; the individual tasks are deliberately NOT
+  // notified per row (see `createTask`'s skipLog gate), which would bury it.
+  if (result.tasksCreated > 0) {
+    await notifySystem(ctx, {
+      title: `Monthly generation for ${period}`,
+      body: `${result.tasksCreated} task(s) created across ${result.clientsProcessed} client(s).`,
+      href: "/tasks",
+    });
+  }
 
   return {
     job: "monthly-generation",

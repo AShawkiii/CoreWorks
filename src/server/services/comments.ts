@@ -1,9 +1,11 @@
+import { EntityType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import {
   ForbiddenError,
   requireUserId,
   type OrgContext,
 } from "@/server/context";
+import { notifyMentions } from "@/server/services/notifications";
 
 /**
  * Comments on issues and client requests (master prompt §43).
@@ -36,22 +38,29 @@ export interface CommentView {
   createdAt: Date;
 }
 
-/** Confirms the parent record is in the caller's organization. */
+/**
+ * Confirms the parent record is in the caller's organization.
+ *
+ * Returns its title as well: a mention notification names what it is about,
+ * and re-reading the parent for that would be a second query for something
+ * this one already had to load.
+ */
 async function requireParentInOrg(
   ctx: OrgContext,
   parent: CommentParent,
   parentId: string,
-): Promise<void> {
+): Promise<{ id: string; title: string }> {
   const where = {
     id: parentId,
     organizationId: ctx.organizationId,
     deletedAt: null,
   };
+  const select = { id: true, title: true };
 
   const found =
     parent === "issue"
-      ? await prisma.issue.findFirst({ where, select: { id: true } })
-      : await prisma.clientRequest.findFirst({ where, select: { id: true } });
+      ? await prisma.issue.findFirst({ where, select })
+      : await prisma.clientRequest.findFirst({ where, select });
 
   if (!found) {
     throw new ForbiddenError(
@@ -60,6 +69,8 @@ async function requireParentInOrg(
         : "Request not found in this organization.",
     );
   }
+
+  return found;
 }
 
 export async function addComment(
@@ -68,7 +79,7 @@ export async function addComment(
   parentId: string,
   body: string,
 ): Promise<void> {
-  await requireParentInOrg(ctx, parent, parentId);
+  const record = await requireParentInOrg(ctx, parent, parentId);
 
   await prisma.comment.create({
     data: {
@@ -77,6 +88,14 @@ export async function addComment(
       body,
       ...(parent === "issue" ? { issueId: parentId } : { requestId: parentId }),
     },
+  });
+
+  await notifyMentions(ctx, body, {
+    href: parent === "issue" ? `/issues/${parentId}` : `/requests/${parentId}`,
+    entityType:
+      parent === "issue" ? EntityType.ISSUE : EntityType.CLIENT_REQUEST,
+    entityId: parentId,
+    label: record.title,
   });
 }
 

@@ -14,6 +14,11 @@ interface AppShellProps {
   organizationName: string;
   logoUrl: string | null;
   userMenu: React.ReactNode;
+  /**
+   * Rendered on the server and passed through as a node, like `userMenu`. The
+   * shell is a Client Component and must not query anything itself.
+   */
+  notifications: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -26,6 +31,7 @@ export function AppShell({
   organizationName,
   logoUrl,
   userMenu,
+  notifications,
   children,
 }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -113,7 +119,8 @@ export function AppShell({
             <span className="sr-only">Open navigation</span>
           </Button>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-1 sm:gap-3">
+            {notifications}
             <ThemeToggle />
             {userMenu}
           </div>

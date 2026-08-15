@@ -10,6 +10,11 @@ import {
 } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { recalculateClientHealth } from "@/server/services/health";
+import {
+  notifyMentions,
+  notifyTaskAssigned,
+  notifyTasksAssigned,
+} from "@/server/services/notifications";
 import { recalculateClientProgress } from "@/server/services/progress";
 import { TaskOperationError, updateTaskStatus } from "@/server/services/tasks";
 
@@ -125,6 +130,14 @@ export async function updateTaskDetails(
     previousValue: task.taskName,
     newValue: input.taskName,
   });
+
+  // Phase 11. Only when the assignee actually changed, and only when there is
+  // one — clearing an assignment is not something to notify the empty seat
+  // about. The previous assignee is deliberately not told they lost the task;
+  // that is a management conversation, not a system message.
+  if (assigneeChanged && assignedToId) {
+    await notifyTaskAssigned(ctx, input.taskId);
+  }
 
   // Priority and due date feed weighted completion and overdue-ness, so a
   // change to either must re-derive the client's numbers rather than wait for
@@ -255,6 +268,18 @@ export async function bulkReassign(
     newValue: `${toMove.length} task(s) → ${name?.user.name ?? "Unassigned"}`,
   });
 
+  // Phase 11. One notification per task here, unlike the single summary
+  // activity entry above, because the two answer different questions: the feed
+  // records that a bulk run happened, while the new assignee needs each task
+  // individually — a "you now own 12 tasks" notice they cannot click through
+  // is not actionable. Unassignment sends nothing.
+  if (memberId) {
+    await notifyTasksAssigned(
+      ctx,
+      toMove.map((task) => task.id),
+    );
+  }
+
   result.updated = toMove.length;
   return result;
 }
@@ -301,6 +326,13 @@ export async function addTaskComment(
       body,
       taskId: task.id,
     },
+  });
+
+  await notifyMentions(ctx, body, {
+    href: `/tasks/${task.id}`,
+    entityType: EntityType.TASK,
+    entityId: task.id,
+    label: task.taskName,
   });
 }
 

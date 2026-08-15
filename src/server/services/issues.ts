@@ -8,6 +8,7 @@ import { ForbiddenError, type OrgContext } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { nextDisplayId } from "@/server/services/ids";
 import { recalculateClientHealth } from "@/server/services/health";
+import { notifyIssueAssigned } from "@/server/services/notifications";
 
 /**
  * Issue service.
@@ -83,6 +84,7 @@ async function requireIssueInOrg(ctx: OrgContext, issueId: string) {
       status: true,
       severity: true,
       deadline: true,
+      assignedToId: true,
     },
   });
   if (!issue) throw new ForbiddenError("Issue not found in this organization.");
@@ -140,6 +142,11 @@ export async function createIssue(
     newValue: input.title,
   });
 
+  // Phase 11. Only when someone was actually named on it.
+  if (assignedToId) {
+    await notifyIssueAssigned(ctx, issue.id);
+  }
+
   // An open Critical issue forces Delayed, and an open High forces At Risk
   // (audit §6.1), so a new issue can change the client's health immediately.
   await recalculateClientHealth(ctx, client.id, today);
@@ -163,6 +170,7 @@ export async function updateIssue(
   const client = await requireClientInOrg(ctx, input.clientId);
   const assignedToId = await requireMemberInOrg(ctx, input.assignedToId);
 
+  const assigneeChanged = existing.assignedToId !== assignedToId;
   const severityChanged = existing.severity !== input.severity;
   const deadlineChanged =
     (existing.deadline?.getTime() ?? null) !== (input.deadline?.getTime() ?? null);
@@ -195,6 +203,12 @@ export async function updateIssue(
     previousValue: existing.title,
     newValue: input.title,
   });
+
+  // Phase 11. Same rule as tasks: the new owner is told, the previous one is
+  // not — losing a record is a conversation, not a system message.
+  if (assigneeChanged && assignedToId) {
+    await notifyIssueAssigned(ctx, input.issueId);
+  }
 
   // Severity and deadline both feed the health rule; moving the issue between
   // clients affects both sides.

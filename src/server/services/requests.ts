@@ -10,6 +10,7 @@ import type {
 import { ForbiddenError, type OrgContext } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { nextDisplayId } from "@/server/services/ids";
+import { notifyRequestAssigned } from "@/server/services/notifications";
 
 /**
  * Client request service.
@@ -84,6 +85,7 @@ async function requireRequestInOrg(ctx: OrgContext, requestId: string) {
       status: true,
       requestedDate: true,
       receivedDate: true,
+      assignedToId: true,
     },
   });
   if (!request) {
@@ -143,6 +145,11 @@ export async function createRequest(
     newValue: input.title,
   });
 
+  // Phase 11. Only when someone was actually named on it.
+  if (assignedToId) {
+    await notifyRequestAssigned(ctx, request.id);
+  }
+
   return request;
 }
 
@@ -185,6 +192,11 @@ export async function updateRequest(
     previousValue: existing.title,
     newValue: input.title,
   });
+
+  // Phase 11. Same rule as tasks and issues.
+  if (existing.assignedToId !== assignedToId && assignedToId) {
+    await notifyRequestAssigned(ctx, input.requestId);
+  }
 }
 
 /**

@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ORG_ROLE_LABELS } from "@/lib/domain/labels";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { hasPermission } from "@/server/auth/permissions";
+import { countUnreadNotifications } from "@/server/services/notifications";
 import { getOrganization } from "@/server/services/organization";
 import { getOrgContext } from "@/server/tenancy";
 
@@ -23,7 +25,10 @@ export default async function AppLayout({
   const ctx = await getOrgContext();
   if (!ctx) redirect("/login");
 
-  const organization = await getOrganization(ctx);
+  const [organization, unreadNotifications] = await Promise.all([
+    getOrganization(ctx),
+    countUnreadNotifications(ctx),
+  ]);
 
   const sections = NAV_SECTIONS.map((section) => ({
     ...section,
@@ -37,6 +42,7 @@ export default async function AppLayout({
       sections={sections}
       organizationName={organization?.name ?? "CoreWorks"}
       logoUrl={organization?.logoUrl ?? null}
+      notifications={<NotificationBell unread={unreadNotifications} />}
       userMenu={
         <UserMenu
           name={ctx.userName}

@@ -157,10 +157,15 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Activity Log",
         icon: "activity",
-        phase: 11,
+        href: "/activity",
         permission: "activity:view",
       },
-      { label: "Notifications", icon: "notifications", phase: 11 },
+      /**
+       * No `permission`. Notifications are addressed to a user id and every
+       * query is scoped by it, so there is nothing here a role could grant or
+       * withhold — a permission would only be able to deny someone their own.
+       */
+      { label: "Notifications", icon: "notifications", href: "/notifications" },
       {
         label: "Settings",
         icon: "settings",
@@ -200,5 +205,9 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     phase: 12,
     permission: "branding:manage",
   },
-  { label: "Notifications", icon: "notifications", phase: 11 },
+  {
+    label: "Notifications",
+    href: "/settings/notifications",
+    icon: "notifications",
+  },
 ];
