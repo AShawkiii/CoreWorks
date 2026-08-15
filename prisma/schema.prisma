@@ -1,0 +1,959 @@
+// CoreWorks — database schema
+//
+// Derived from the Phase 0 audit (docs/architecture-audit.md). Every enum value,
+// field, and constraint here traces to legacy behavior documented in that audit;
+// deviations are marked "DEVIATION:" with a reason.
+//
+// Multi-tenancy: every business table carries `organizationId`. Uniqueness is
+// always scoped by organization, never global, so two organizations can both
+// have client "CL-0001" without collision.
+//
+// Display IDs: legacy IDs (CL-0001, TSK-000001, ...) are user-facing — staff cite
+// them in email and conversation (audit §4). They are preserved as `displayId`
+// alongside a UUID primary key.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations — audit §5. Values are the legacy canonical set.
+// Screen labels live in src/lib/domain/labels.ts; these identifiers are stable.
+// ---------------------------------------------------------------------------
+
+/// Audit §5. Seven values — `IN_REVIEW` is present in legacy code and is
+/// retained per master-prompt rule 12 (conflict C1: the brief's §12 omits it).
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  WAITING_CLIENT
+  BLOCKED
+  IN_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+/// Audit §5. Weights (Critical 4 / High 3 / Medium 2 / Low 1) are NOT stored
+/// here — they live in src/lib/domain/enums.ts, matching legacy Enums.gs, and
+/// drive weighted completion, issue surfacing, and client-detail issue order.
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ClientHealth {
+  ON_TRACK
+  AT_RISK
+  DELAYED
+  ON_HOLD
+}
+
+enum ContractStatus {
+  ONBOARDING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestStatus {
+  REQUESTED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  NOT_AVAILABLE
+  CANCELLED
+}
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+enum ReviewStatus {
+  NOT_REVIEWED
+  IN_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  ONE_TIME
+}
+
+enum ReportingFrequency {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+/// Per-stage status within a monthly close (audit §6.13).
+enum CloseStageStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+  WAITING_CLIENT
+}
+
+enum CloseStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  CLOSED
+}
+
+/// Legacy TASKS."Task Category" — how a task came into being.
+enum TaskCategory {
+  ONBOARDING
+  RECURRING
+  AD_HOC
+}
+
+/// DEVIATION (audit §10, conflict C7): net-new. Legacy has NO role-based access
+/// control — its only rule is "email in EMPLOYEES and Active? = Yes". Legacy
+/// EMPLOYEES.Role holds job titles used solely for template assignee resolution
+/// (audit §6.10); that is preserved separately as OrganizationMember.jobTitle.
+enum OrgRole {
+  OWNER
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  TEAM_MEMBER
+  VIEWER
+}
+
+/// Audit §5 ENTITY_TYPE, extended for entities CoreWorks adds.
+enum EntityType {
+  CLIENT
+  USER
+  TASK
+  TASK_TEMPLATE
+  CLIENT_REQUEST
+  ISSUE
+  MONTHLY_CLOSE
+  SERVICE
+  SERVICE_PACKAGE
+  ORGANIZATION
+  SYSTEM
+}
+
+/// Net-new (audit §15). Legacy has no notification layer.
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  ISSUE_ASSIGNED
+  REQUEST_ASSIGNED
+  CLIENT_HEALTH_CHANGED
+  MENTION
+  SYSTEM
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String    @unique
+  logoUrl   String?
+  timezone  String    @default("UTC")
+  currency  String    @default("USD")
+  locale    String    @default("en")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  theme            ThemeSettings?
+  members          OrganizationMember[]
+  clients          Client[]
+  services         Service[]
+  servicePackages  ServicePackage[]
+  taskTemplates    TaskTemplate[]
+  tasks            Task[]
+  clientRequests   ClientRequest[]
+  issues           Issue[]
+  activityLogs     ActivityLog[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  monthlyCloses    MonthlyClose[]
+  comments         Comment[]
+  attachments      Attachment[]
+  settings         OrganizationSetting[]
+  idSequences      IdSequence[]
+
+  @@index([deletedAt])
+}
+
+/// Organization branding (master prompt §27/§28). Consumed as CSS custom
+/// properties; no component hardcodes a color.
+model ThemeSettings {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @unique @db.Uuid
+  preset         String  @default("coreworks")
+  primaryColor   String  @default("221 83% 53%")
+  secondaryColor String  @default("215 16% 47%")
+  accentColor    String  @default("221 83% 53%")
+  sidebarColor   String  @default("222 47% 11%")
+  backgroundColor String @default("0 0% 100%")
+  /// "light" | "dark" | "system" — the organization default; a user may override.
+  defaultMode    String  @default("system")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+/// Legacy SETTINGS (audit §3.1), scoped per organization. Health thresholds,
+/// the request-staleness window, and the monthly-close due day live here, so
+/// they stay configurable exactly as legacy intended (audit §6.1, conflict C6).
+model OrganizationSetting {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  category       String
+  key            String
+  value          String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, category, key])
+  @@index([organizationId])
+}
+
+/// Instance-wide configuration, not org-scoped.
+model SystemSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Per-organization counters backing legacy display-ID formats.
+///
+/// DEVIATION (audit D3): legacy generated IDs by scanning for the highest
+/// existing suffix and adding one — safe under Apps Script's single-threaded
+/// execution, a duplicate-ID race under a concurrent web backend. The FORMAT is
+/// preserved exactly; only the mechanism changes. Allocation uses an atomic
+/// UPDATE ... RETURNING (see src/server/services/ids.ts).
+model IdSequence {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  /// Entity key, e.g. "CLIENT", "TASK" — see ID_CONFIG in src/lib/domain/ids.ts
+  entity         String
+  lastValue      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, entity])
+}
+
+// ---------------------------------------------------------------------------
+// Identity — Auth.js v5 models plus organization membership
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  /// bcrypt hash. Null for users who only authenticate via an OAuth provider.
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  accounts             Account[]
+  sessions             Session[]
+  memberships          OrganizationMember[]
+  activityLogs         ActivityLog[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  comments             Comment[]
+  attachments          Attachment[]
+  dashboardPreferences DashboardPreference[]
+  passwordResetTokens  PasswordResetToken[]
+
+  @@index([deletedAt])
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique
+  expires   DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Legacy EMPLOYEES (audit §3.1) split into global identity (User) and
+/// per-organization membership (here).
+model OrganizationMember {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  userId         String    @db.Uuid
+  displayId      String
+  /// Net-new RBAC role — governs access (audit §10).
+  role           OrgRole   @default(TEAM_MEMBER)
+  /// Legacy EMPLOYEES.Role — a job title (Bookkeeper, Senior Accountant,
+  /// FP&A Analyst, Account Manager, CFO Advisor). Drives template assignee
+  /// resolution (audit §6.10). Deliberately NOT an access-control input.
+  jobTitle       String?
+  department     String?
+  /// Legacy EMPLOYEES.Capacity — open-task threshold for the workload
+  /// overload flag (audit §6.7). Null means "never judged overloaded";
+  /// zero is a valid capacity, not "unset".
+  capacity       Int?
+  /// Legacy EMPLOYEES."Active?" — gates both assignability and sign-in.
+  isActive       Boolean   @default(true)
+  managerId      String?   @db.Uuid
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  manager      OrganizationMember?  @relation("MemberManager", fields: [managerId], references: [id], onDelete: SetNull)
+  reports      OrganizationMember[] @relation("MemberManager")
+
+  managedClients   Client[]        @relation("AccountManager")
+  backupForClients Client[]        @relation("BackupTeamMember")
+  assignedTasks    Task[]          @relation("TaskAssignee")
+  reviewingTasks   Task[]          @relation("TaskReviewer")
+  assignedIssues   Issue[]         @relation("IssueAssignee")
+  assignedRequests ClientRequest[] @relation("RequestAssignee")
+
+  @@unique([organizationId, userId])
+  @@unique([organizationId, displayId])
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Service catalog
+// ---------------------------------------------------------------------------
+
+model Service {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  displayId      String
+  name           String
+  category       String?
+  description    String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  packages     ServicePackageService[]
+
+  @@unique([organizationId, displayId])
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ServicePackage {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  displayId      String
+  name           String
+  description    String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// DEVIATION (audit §14.3): legacy stored "Included Service Areas" as
+  /// free text in one cell. Normalized to a join table.
+  services     ServicePackageService[]
+  clients      Client[]
+  taskTemplates TaskTemplate[]
+
+  @@unique([organizationId, displayId])
+  @@unique([organizationId, name])
+  @@index([organizationId])
+}
+
+model ServicePackageService {
+  servicePackageId String @db.Uuid
+  serviceId        String @db.Uuid
+
+  servicePackage ServicePackage @relation(fields: [servicePackageId], references: [id], onDelete: Cascade)
+  service        Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([servicePackageId, serviceId])
+  @@index([serviceId])
+}
+
+model TaskTemplate {
+  id                  String    @id @default(uuid()) @db.Uuid
+  organizationId      String    @db.Uuid
+  displayId           String
+  servicePackageId    String    @db.Uuid
+  serviceArea         String
+  taskName            String
+  description         String?
+  frequency           Frequency
+  priority            Priority  @default(MEDIUM)
+  /// Legacy TASK_TEMPLATES."Default Assignee" — a ROLE/job title, not a
+  /// person. Resolved per client at generation time (audit §6.10).
+  defaultAssigneeRole String?
+  typicalDurationDays Int       @default(0)
+  requiresClientInput Boolean   @default(false)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  servicePackage ServicePackage @relation(fields: [servicePackageId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+
+  @@unique([organizationId, displayId])
+  @@index([organizationId])
+  @@index([organizationId, servicePackageId, isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Clients
+// ---------------------------------------------------------------------------
+
+model Client {
+  id             String  @id @default(uuid()) @db.Uuid
+  organizationId String  @db.Uuid
+  displayId      String
+  name           String
+  companyName    String?
+  industry       String?
+  businessType   String?
+  /// Legacy CLIENTS."Start Date" — REQUIRED for client creation (audit §6.9).
+  /// Absent from master prompt §10; retained per conflict C2.
+  startDate      DateTime?
+
+  servicePackageId String? @db.Uuid
+  accountManagerId String? @db.Uuid
+  backupMemberId   String? @db.Uuid
+
+  /// Legacy single-contact columns, retained for import fidelity. Additional
+  /// contacts live in ClientContact (master prompt §67).
+  contactName String?
+  email       String?
+  phone       String?
+
+  /// Legacy CLIENTS columns absent from master prompt §10; retained per C2.
+  accountingSystem   String?
+  reportingFrequency ReportingFrequency?
+  monthEndClosingDay Int?
+
+  contractStatus ContractStatus @default(ONBOARDING)
+  priority       Priority       @default(MEDIUM)
+
+  /// Derived and stored, recomputed by the health/progress engines
+  /// (audit §6.1, §6.2, §7). Never written by hand.
+  health               ClientHealth @default(ON_TRACK)
+  /// Fractions in the range 0..1, matching legacy (audit §6.2).
+  simpleCompletionPct   Float       @default(0)
+  weightedCompletionPct Float       @default(0)
+  lastActivityAt       DateTime?
+  nextDeadline         DateTime?
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  servicePackage ServicePackage?     @relation(fields: [servicePackageId], references: [id], onDelete: SetNull)
+  accountManager OrganizationMember? @relation("AccountManager", fields: [accountManagerId], references: [id], onDelete: SetNull)
+  backupMember   OrganizationMember? @relation("BackupTeamMember", fields: [backupMemberId], references: [id], onDelete: SetNull)
+
+  contacts      ClientContact[]
+  tasks         Task[]
+  issues        Issue[]
+  requests      ClientRequest[]
+  monthlyCloses MonthlyClose[]
+  activityLogs  ActivityLog[]
+  comments      Comment[]
+  attachments   Attachment[]
+
+  @@unique([organizationId, displayId])
+  /// Legacy duplicate rule: same Client Name AND Company Name (audit §6.9).
+  @@unique([organizationId, name, companyName])
+  @@index([organizationId])
+  @@index([organizationId, contractStatus])
+  @@index([organizationId, health])
+  @@index([organizationId, accountManagerId])
+  @@index([organizationId, deletedAt])
+}
+
+model ClientContact {
+  id        String    @id @default(uuid()) @db.Uuid
+  clientId  String    @db.Uuid
+  name      String
+  role      String?
+  email     String?
+  phone     String?
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+// ---------------------------------------------------------------------------
+// Work
+// ---------------------------------------------------------------------------
+
+model Task {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  displayId      String
+  clientId       String @db.Uuid
+
+  serviceArea  String
+  taskCategory TaskCategory @default(AD_HOC)
+  taskName     String
+  description  String?
+  /// "YYYY-MM" — legacy period format, load-bearing for generation dedupe
+  /// and frequency matching (audit §6.4, §6.11). Kept as a string so the
+  /// ported logic runs unchanged.
+  period       String?
+  frequency    Frequency?
+
+  taskTemplateId String? @db.Uuid
+  assignedToId   String? @db.Uuid
+  reviewerId     String? @db.Uuid
+
+  priority Priority   @default(MEDIUM)
+  status   TaskStatus @default(NOT_STARTED)
+
+  startDate      DateTime?
+  dueDate        DateTime?
+  completionDate DateTime?
+
+  /// Legacy TASKS."Waiting For" / "Client Dependency".
+  waitingFor       String?
+  clientDependency Boolean @default(false)
+
+  /// Fraction 0..1. Set to 1 on completion (audit §6.3).
+  completionPct Float        @default(0)
+  reviewStatus  ReviewStatus @default(NOT_REVIEWED)
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  taskTemplate TaskTemplate?       @relation(fields: [taskTemplateId], references: [id], onDelete: SetNull)
+  assignedTo   OrganizationMember? @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  reviewer     OrganizationMember? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  statusHistory TaskStatusHistory[]
+  comments      Comment[]
+  attachments   Attachment[]
+
+  @@unique([organizationId, displayId])
+  /// Generation dedupe key (audit §6.11). Deliberately an INDEX, not a unique
+  /// constraint: legacy only consults this key inside the generators, while
+  /// manual ad-hoc creation may legitimately repeat a name within a period.
+  /// A unique constraint here would be stricter than legacy behavior.
+  @@index([organizationId, clientId, serviceArea, taskName, period])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, dueDate])
+  @@index([organizationId, assignedToId])
+  @@index([organizationId, clientId, status])
+  @@index([organizationId, period])
+  @@index([organizationId, deletedAt])
+}
+
+/// Master prompt §44 — who changed a task's status, and when.
+model TaskStatusHistory {
+  id         String      @id @default(uuid()) @db.Uuid
+  taskId     String      @db.Uuid
+  fromStatus TaskStatus?
+  toStatus   TaskStatus
+  changedById String?    @db.Uuid
+  changedAt  DateTime    @default(now())
+  note       String?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Issue {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  displayId      String
+  clientId       String @db.Uuid
+
+  title        String
+  category     String?
+  /// Legacy ISSUES."Impact" (audit §3.1). Retained per conflict C3.
+  impact       String?
+  /// Net-new free-text detail (master prompt §14, conflict C3).
+  description  String?
+  severity     IssueSeverity @default(MEDIUM)
+  status       IssueStatus   @default(OPEN)
+  assignedToId String?       @db.Uuid
+
+  dateRaised     DateTime  @default(now())
+  deadline       DateTime?
+  requiredAction String?
+  /// Net-new (conflict C3).
+  resolution     String?
+  resolutionDate DateTime?
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedTo   OrganizationMember? @relation("IssueAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  comments    Comment[]
+  attachments Attachment[]
+
+  @@unique([organizationId, displayId])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, severity])
+  @@index([organizationId, clientId, status])
+  @@index([organizationId, deadline])
+  @@index([organizationId, deletedAt])
+}
+
+model ClientRequest {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  displayId      String
+  clientId       String @db.Uuid
+
+  title       String
+  /// Net-new free-text detail (master prompt §15, conflict C4).
+  description String?
+  status      RequestStatus @default(REQUESTED)
+  priority    Priority      @default(MEDIUM)
+
+  requestedDate DateTime  @default(now())
+  requiredBy    DateTime?
+  /// Legacy CLIENT_REQUESTS."Received Date" — freezes Days Waiting once the
+  /// request closes (audit §6.4).
+  receivedDate  DateTime?
+  /// Net-new (conflict C4).
+  resolution    String?
+
+  assignedToId String? @db.Uuid
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedTo   OrganizationMember? @relation("RequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  comments    Comment[]
+  attachments Attachment[]
+
+  /// Days Waiting and its bucket are intentionally NOT stored — they are
+  /// derived server-side from requestedDate/status/receivedDate on read
+  /// (master prompt §15; audit §7).
+  @@unique([organizationId, displayId])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, clientId, status])
+  @@index([organizationId, requestedDate])
+  @@index([organizationId, deletedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Monthly close
+// ---------------------------------------------------------------------------
+
+model MonthlyClose {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  displayId      String
+  clientId       String @db.Uuid
+  /// "YYYY-MM".
+  period         String
+
+  status CloseStatus @default(NOT_STARTED)
+  /// Fraction 0..1, derived from stage rows (audit §6.13).
+  completionPct Float  @default(0)
+
+  reviewStatus ReviewStatus @default(NOT_REVIEWED)
+  notes        String?
+  closedAt     DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  stages       MonthlyCloseTask[]
+
+  @@unique([organizationId, displayId])
+  @@unique([organizationId, clientId, period])
+  @@index([organizationId])
+  @@index([organizationId, period])
+}
+
+/// DEVIATION (audit §14.3): legacy MONTHLY_CLOSE held 18 fixed stage COLUMNS
+/// (Sales … Final Approval). Normalized to 18 ROWS per close, preserving the
+/// original column order via `stageOrder` so the dashboard renders identically.
+model MonthlyCloseTask {
+  id             String           @id @default(uuid()) @db.Uuid
+  monthlyCloseId String           @db.Uuid
+  stageName      String
+  stageOrder     Int
+  status         CloseStageStatus @default(NOT_STARTED)
+  assignedToId   String?          @db.Uuid
+  completedAt    DateTime?
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  monthlyClose MonthlyClose @relation(fields: [monthlyCloseId], references: [id], onDelete: Cascade)
+
+  @@unique([monthlyCloseId, stageName])
+  @@index([monthlyCloseId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit, collaboration, notifications
+// ---------------------------------------------------------------------------
+
+/// Legacy ACTIVITY_LOG (audit §6.14) — business-meaningful events shown to users.
+model ActivityLog {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String     @db.Uuid
+  displayId      String
+  userId         String?    @db.Uuid
+  /// Snapshot so history survives user deletion (audit D4).
+  userEmail      String?
+  clientId       String?    @db.Uuid
+  entityType     EntityType
+  entityId       String?
+  action         String
+  previousValue  String?
+  newValue       String?
+  comment        String?
+  createdAt      DateTime   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client       Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, displayId])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, clientId])
+  @@index([organizationId, entityType, entityId])
+}
+
+/// Net-new (master prompt §35). Security/technical trail, distinct from the
+/// user-facing ActivityLog: sign-ins, permission changes, exports, settings.
+model AuditLog {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String?    @db.Uuid
+  userId         String?    @db.Uuid
+  userEmail      String?
+  action         String
+  entityType     EntityType?
+  entityId       String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime   @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([userId])
+}
+
+model Notification {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String           @db.Uuid
+  type           NotificationType
+  title          String
+  body           String?
+  /// Deep link into the app.
+  href           String?
+  entityType     EntityType?
+  entityId       String?
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([organizationId])
+}
+
+/// Master prompt §43. Nullable FK per target rather than a polymorphic pair,
+/// so the database enforces referential integrity.
+model Comment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  authorId       String?  @db.Uuid
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  clientId  String? @db.Uuid
+  taskId    String? @db.Uuid
+  issueId   String? @db.Uuid
+  requestId String? @db.Uuid
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  client       Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task         Task?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  issue        Issue?         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  request      ClientRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([taskId])
+  @@index([issueId])
+  @@index([requestId])
+  @@index([clientId])
+}
+
+/// Master prompt §42. Binary content lives in object storage; only metadata
+/// and a key are stored here.
+model Attachment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  uploadedById   String?  @db.Uuid
+  fileName       String
+  contentType    String
+  sizeBytes      Int
+  /// Object-storage key, not a public URL.
+  storageKey     String
+  createdAt      DateTime @default(now())
+  deletedAt      DateTime?
+
+  clientId  String? @db.Uuid
+  taskId    String? @db.Uuid
+  issueId   String? @db.Uuid
+  requestId String? @db.Uuid
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  client       Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task         Task?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  issue        Issue?         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  request      ClientRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([taskId])
+  @@index([issueId])
+  @@index([requestId])
+  @@index([clientId])
+}
+
+model DashboardPreference {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  /// Dashboard key, e.g. "control-center".
+  dashboard String
+  /// "light" | "dark" | "system" — user override of the organization default.
+  themeMode String?
+  layout    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dashboard])
+}

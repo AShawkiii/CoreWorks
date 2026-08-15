@@ -383,7 +383,9 @@ Sequence: validate → dedupe → generate ID → append → log `Client Added` 
 
 - **Basic Accounting** — 9 tasks (Daily Bookkeeping, Bank Reconciliation, AP, AR, GL Review, Month-End Close, Monthly P&L, Monthly Balance Sheet, Monthly Cash Flow)
 - **Full Finance** — Basic's 9 **+ 7** (Budget, Sales Forecast, Cash Forecast, Budget vs Actual, KPI Reporting, Variance Analysis, Management Reporting) = **16**
-- **CFO / FP&A** — Full Finance's 16 **+ 6**, **deduplicated by task name** = **21**
+- **CFO / FP&A** — Full Finance's 16 **+ 6** (Rolling Forecast, Scenario Analysis, KPI Dashboard, Profitability Analysis, Working Capital Analysis, Strategic Recommendations), passed through `dedupeByTaskName` = **22**
+
+**Total seed rows: 47** (9 + 16 + 22). Verified by executing `buildTaskTemplateSeed()` directly against the legacy source, not by reading it — see defect **D6**.
 
 ### 6.13 Monthly close
 Completion % = `COUNTIF(18 stages, "Completed") / COUNTA(stages)`. Close Status derived from completion % and presence of any Blocked stage. Close ID = `MC-<ClientID>-<YYYYMM>`.
@@ -553,6 +555,17 @@ The **code** ([`HealthLogic.gs:23`](../legacy/apps-script/clients/HealthLogic.gs
 
 ### D4 — Name-based foreign keys
 `ACTIVITY_LOG.Client`, `MONTHLY_CLOSE.Client`, and all employee references join by **name**. Renaming a client or employee silently orphans history. **Action:** normalize to FK; retain the name as a denormalized display column where useful.
+
+### D6 — `TaskTemplatesData.gs` docblock misdescribes the CFO/FP&A dedupe *(documentation defect)*
+The file's header comment states that CFO / FP&A is built from Full Finance's 16 tasks plus the CFO items, "with the 3 CFO-list items that already exist in Full Finance (Budget, Cash Forecast, Management Reporting) deduplicated by name rather than re-added as second rows."
+
+No such collision exists. `CFO_FPA_ADDITIONAL_TASKS` contains Rolling Forecast, Scenario Analysis, KPI Dashboard, Profitability Analysis, Working Capital Analysis, and Strategic Recommendations — none of which appear in Full Finance. `dedupeByTaskName` therefore removes nothing, and the tier has **22** templates, not the 21 the comment implies.
+
+Confirmed by executing the legacy builder:
+```
+Basic Accounting: 9 · Full Finance: 16 · CFO / FP&A: 22 · TOTAL: 47
+```
+**Action:** the code is authoritative — 22 templates, 47 seed rows. `dedupeByTaskName` is still ported (it is a real guard if the catalog is later edited), but it is a no-op against the current catalog.
 
 ### D5 — Four zero-byte junk files
 `apps-script/{0,cd,clasp,type}`. Preserved for mirror fidelity, **not migrated**.

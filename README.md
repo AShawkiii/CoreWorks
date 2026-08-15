@@ -11,12 +11,20 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | Phase | Scope | Status |
 |---|---|---|
 | **0** | Repository audit, legacy preservation, migration plan | ✅ **Complete** |
-| 1 | Project scaffold, database schema, authentication | Next |
-| 2 | Organization, users, roles, permissions | Pending |
+| **1** | Project scaffold, database schema, authentication, design tokens | ✅ **Complete** |
+| 2 | Organization, users, roles, permissions | Next |
 | 3 | Business-logic port + parity tests | Pending |
 | 4–14 | Clients, Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
+
+## Stack
+
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · PostgreSQL 16 ·
+Prisma 7 · Auth.js v5 · Zod 4 · Vitest · Recharts · Lucide
+
+See [`docs/setup.md`](docs/setup.md) to run it locally, and
+[`docs/database.md`](docs/database.md) for the data model.
 
 ---
 
@@ -38,6 +46,8 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 |---|---|
 | [`docs/architecture-audit.md`](docs/architecture-audit.md) | **Start here.** Full audit of the legacy system: modules, entities, enumerations, every business rule with citations, dashboards and KPIs, permissions, known defects, and the function-by-function migration map. |
 | [`docs/migration-plan.md`](docs/migration-plan.md) | Logic port procedure, Sheets → PostgreSQL data migration, import engine, cutover and rollback. |
+| [`docs/setup.md`](docs/setup.md) | Requirements, environment variables, database setup, commands, troubleshooting. |
+| [`docs/database.md`](docs/database.md) | Schema design: multi-tenancy, identity split, display IDs, normalization, stored vs derived fields. |
 
 Additional documents (`architecture.md`, `database.md`, `setup.md`, `deployment.md`, `business-rules.md`, `security.md`) are added in the phases that produce them.
 

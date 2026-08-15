@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   CoreWorks design tokens
+   ---------------------------------------------------------------------------
+   Every colour in the application resolves through a semantic token defined
+   here. No component may hardcode a palette value (no `bg-blue-500`) — that is
+   what makes per-organization branding (master prompt §27/§28) and dark mode
+   (§30) possible without touching component code.
+
+   Values are HSL *channels* ("221 83% 53%"), not full colors, so an
+   organization's stored brand colours can be injected at runtime as a plain
+   style attribute on <html> and picked up by every consumer.
+
+   Light is the base. Dark redefines only what changes — it is a designed
+   palette, not an inversion (§30).
+--------------------------------------------------------------------------- */
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-danger: hsl(var(--danger));
+  --color-danger-foreground: hsl(var(--danger-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-muted: hsl(var(--sidebar-muted));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+
+  /* Domain-semantic states. Client health (audit §5) is a first-class visual
+     concept in this product, so it gets tokens rather than ad-hoc colours. */
+  --color-health-on-track: hsl(var(--health-on-track));
+  --color-health-on-track-fg: hsl(var(--health-on-track-fg));
+  --color-health-at-risk: hsl(var(--health-at-risk));
+  --color-health-at-risk-fg: hsl(var(--health-at-risk-fg));
+  --color-health-delayed: hsl(var(--health-delayed));
+  --color-health-delayed-fg: hsl(var(--health-delayed-fg));
+  --color-health-on-hold: hsl(var(--health-on-hold));
+  --color-health-on-hold-fg: hsl(var(--health-on-hold-fg));
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --surface: 210 20% 98%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 16% 47%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 221 83% 53%;
+  --accent-foreground: 0 0% 100%;
+
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 20% 89%;
+  --input: 214 20% 89%;
+  --ring: 221 83% 53%;
+
+  --success: 142 63% 33%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 45%;
+  --warning-foreground: 0 0% 100%;
+  --danger: 0 72% 47%;
+  --danger-foreground: 0 0% 100%;
+  --info: 217 91% 55%;
+  --info-foreground: 0 0% 100%;
+
+  --sidebar: 222 47% 11%;
+  --sidebar-foreground: 210 20% 92%;
+  --sidebar-muted: 215 20% 62%;
+  --sidebar-accent: 217 33% 20%;
+  --sidebar-border: 217 33% 20%;
+
+  --health-on-track: 142 62% 92%;
+  --health-on-track-fg: 143 64% 20%;
+  --health-at-risk: 45 96% 90%;
+  --health-at-risk-fg: 33 82% 25%;
+  --health-delayed: 0 86% 94%;
+  --health-delayed-fg: 0 63% 34%;
+  --health-on-hold: 214 15% 92%;
+  --health-on-hold-fg: 215 16% 35%;
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222 47% 9%;
+  --foreground: 210 20% 96%;
+  --surface: 222 44% 12%;
+  --card: 222 44% 12%;
+  --card-foreground: 210 20% 96%;
+  --popover: 222 44% 12%;
+  --popover-foreground: 210 20% 96%;
+
+  --primary: 217 91% 62%;
+  --primary-foreground: 222 47% 9%;
+  --secondary: 215 20% 65%;
+  --secondary-foreground: 222 47% 9%;
+  --accent: 217 91% 62%;
+  --accent-foreground: 222 47% 9%;
+
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 68%;
+  --border: 217 33% 22%;
+  --input: 217 33% 22%;
+  --ring: 217 91% 62%;
+
+  --success: 142 60% 45%;
+  --success-foreground: 222 47% 9%;
+  --warning: 38 92% 58%;
+  --warning-foreground: 222 47% 9%;
+  --danger: 0 72% 60%;
+  --danger-foreground: 222 47% 9%;
+  --info: 217 91% 62%;
+  --info-foreground: 222 47% 9%;
+
+  --sidebar: 222 47% 7%;
+  --sidebar-foreground: 210 20% 92%;
+  --sidebar-muted: 215 20% 60%;
+  --sidebar-accent: 217 33% 16%;
+  --sidebar-border: 217 33% 16%;
+
+  /* Health states are re-authored for dark, not inverted: low-chroma fills
+     with high-contrast text so a Delayed badge still reads as urgent. */
+  --health-on-track: 143 45% 18%;
+  --health-on-track-fg: 141 70% 72%;
+  --health-at-risk: 36 45% 18%;
+  --health-at-risk-fg: 45 90% 70%;
+  --health-delayed: 0 45% 20%;
+  --health-delayed-fg: 0 85% 78%;
+  --health-on-hold: 217 20% 22%;
+  --health-on-hold-fg: 215 18% 75%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Accessibility (§61): a visible, consistent focus ring everywhere. */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
