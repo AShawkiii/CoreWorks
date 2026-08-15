@@ -81,6 +81,7 @@ export default async function ClientDetailPage({
   const { viewModel: vm, summary } = detail;
   const canEdit = hasPermission(ctx.role, "client:update");
   const canArchive = hasPermission(ctx.role, "client:archive");
+  const canViewTasks = hasPermission(ctx.role, "task:view");
 
   const dateFormatter = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -314,12 +315,32 @@ export default async function ClientDetailPage({
 
       {tab === "tasks" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Open tasks</CardTitle>
-            <CardDescription>
-              Soonest due first; tasks with no date sort last. Full task
-              management arrives in Phase 5.
-            </CardDescription>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Open tasks</CardTitle>
+              <CardDescription>
+                Soonest due first; tasks with no date sort last. Closed and
+                cancelled work is not shown here.
+              </CardDescription>
+            </div>
+            {canViewTasks ? (
+              <div className="flex gap-2">
+                <Link
+                  href={{ pathname: "/tasks", query: { clientId: id } }}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  All tasks
+                </Link>
+                {hasPermission(ctx.role, "task:create") ? (
+                  <Link
+                    href={{ pathname: "/tasks/new", query: { clientId: id } }}
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    New task
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
           </CardHeader>
           {vm.tasks.length === 0 ? (
             <p className="px-6 pb-6 text-sm text-muted-foreground">
@@ -341,7 +362,21 @@ export default async function ClientDetailPage({
               <TableBody>
                 {vm.tasks.map((task) => (
                   <TableRow key={task.taskId}>
-                    <TableCell className="font-medium">{task.taskName}</TableCell>
+                    <TableCell className="font-medium">
+                      {canViewTasks ? (
+                        <Link
+                          href={`/tasks/${task.taskId}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {task.taskName}
+                        </Link>
+                      ) : (
+                        task.taskName
+                      )}
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        {task.taskDisplayId}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {task.serviceArea}
                     </TableCell>

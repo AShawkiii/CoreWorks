@@ -36,6 +36,8 @@ export const ACTIVITY_ACTIONS = {
   TASK_CREATED: "Task Created",
   TASK_STATUS_CHANGED: "Task Status Changed",
   TASK_REASSIGNED: "Task Reassigned",
+  TASK_UPDATED: "Task Updated",
+  TASK_DELETED: "Task Deleted",
   ONBOARDING_TASKS_GENERATED: "Onboarding Tasks Generated",
   MONTHLY_TASKS_GENERATED: "Monthly Tasks Generated",
   ISSUE_CREATED: "Issue Created",

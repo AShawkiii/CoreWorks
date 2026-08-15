@@ -40,6 +40,28 @@ function bodyOf(source: string, name: string): string {
   return source.slice(start, next === -1 ? undefined : next);
 }
 
+/**
+ * Module-local `require*` helpers, e.g. `async function requireTaskPermission`.
+ *
+ * Some authorization decisions need a database lookup before they can be made
+ * — task editing depends on whether the caller is the assignee — so the check
+ * lives in a helper rather than inline. Calling one counts as a guard, but
+ * only because every such helper is itself asserted to be guarded below.
+ */
+function localGuards(source: string): string[] {
+  return [...source.matchAll(/^(?:async )?function (require\w+)/gm)].map(
+    (match) => match[1] as string,
+  );
+}
+
+function localBodyOf(source: string, name: string): string {
+  const match = new RegExp(`^(?:async )?function ${name}\\b`, "m").exec(source);
+  if (!match) return "";
+  const start = match.index;
+  const next = source.indexOf("\n}\n", start);
+  return source.slice(start, next === -1 ? undefined : next);
+}
+
 describe("server action authorization", () => {
   const files = actionFiles();
 
@@ -50,6 +72,7 @@ describe("server action authorization", () => {
   for (const file of files) {
     const source = readFileSync(join(ACTIONS_DIR, file), "utf8");
     const actions = exportedActions(source);
+    const helpers = localGuards(source);
 
     describe(file, () => {
       it("is a server module", () => {
@@ -61,16 +84,31 @@ describe("server action authorization", () => {
           const body = bodyOf(source, action);
 
           // Either a permission check, an authenticated-context requirement,
-          // or delegation to another guarded action in the same module.
+          // delegation to another guarded action, or a module-local require*
+          // helper — which the next test proves is itself guarded.
           const guarded =
             body.includes("requirePermission(") ||
             body.includes("requireOrgContext(") ||
             body.includes("signOut(") ||
-            /await\s+\w+Action\(/.test(body);
+            /await\s+\w+Action\(/.test(body) ||
+            helpers.some((helper) => body.includes(`${helper}(`));
 
           expect(
             guarded,
             `${file}::${action} has no requirePermission/requireOrgContext call`,
+          ).toBe(true);
+        });
+      }
+
+      for (const helper of helpers) {
+        it(`${helper} is itself an authorization check`, () => {
+          // Otherwise a helper named require* would launder an unguarded
+          // action past the test above.
+          const body = localBodyOf(source, helper);
+          expect(
+            body.includes("requirePermission(") ||
+              body.includes("requireOrgContext("),
+            `${file}::${helper} is treated as a guard but performs no check`,
           ).toBe(true);
         });
       }

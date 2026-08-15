@@ -1,9 +1,17 @@
-import { EntityType, TaskCategory, TaskStatus } from "@/generated/prisma/enums";
+import {
+  EntityType,
+  TaskCategory,
+  TaskStatus,
+} from "@/generated/prisma/enums";
+import type {
+  Frequency,
+  Priority,
+  ReviewStatus,
+} from "@/generated/prisma/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { TASK_STATUS_LABELS } from "@/lib/domain/labels";
 import { nextStatusAllowed, validateTaskFields } from "@/lib/domain/task";
-import type { ExpandedTask } from "@/lib/domain/template";
 import { ForbiddenError, type OrgContext } from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { nextDisplayId } from "@/server/services/ids";
@@ -28,10 +36,40 @@ export class TaskOperationError extends Error {
 
 type Db = Prisma.TransactionClient | typeof prisma;
 
-export interface CreateTaskInput extends Partial<ExpandedTask> {
+/**
+ * Input for creating a task.
+ *
+ * Declared explicitly rather than as `Partial<ExpandedTask>`: the generator
+ * always supplies a due date and period, while a manual task may have
+ * neither, so the two shapes differ in nullability. An ExpandedTask is
+ * assignable to this.
+ */
+export interface CreateTaskInput {
   clientId: string;
   taskName: string;
   serviceArea: string;
+  description?: string | null;
+  period?: string | null;
+  frequency?: Frequency | null;
+  taskTemplateId?: string | null;
+  taskCategory?: TaskCategory;
+  priority?: Priority;
+  status?: TaskStatus;
+  dueDate?: Date | null;
+  startDate?: Date | null;
+  completionPct?: number;
+  reviewStatus?: ReviewStatus;
+  clientDependency?: boolean;
+  notes?: string | null;
+  waitingFor?: string | null;
+  /**
+   * Preferred over `assignedToName` when present. Generation resolves a
+   * template ROLE to a person by name (audit §6.10); the UI already knows the
+   * member id, so it passes that directly rather than round-tripping a name.
+   */
+  assignedToId?: string | null;
+  assignedToName?: string | null;
+  reviewerId?: string | null;
 }
 
 export interface CreateTaskOptions {
@@ -72,11 +110,15 @@ export async function createTask(
     throw new ForbiddenError("Client not found in this organization.");
   }
 
-  const assignedToId = await resolveMemberId(
-    ctx,
-    input.assignedToName ?? null,
-    db,
-  );
+  const assignedToId =
+    input.assignedToId !== undefined
+      ? await requireMemberId(ctx, input.assignedToId, db)
+      : await resolveMemberId(ctx, input.assignedToName ?? null, db);
+
+  const reviewerId =
+    input.reviewerId !== undefined
+      ? await requireMemberId(ctx, input.reviewerId, db)
+      : null;
 
   const displayId = await nextDisplayId(ctx.organizationId, "TASK", db);
 
@@ -93,9 +135,13 @@ export async function createTask(
       frequency: input.frequency ?? null,
       taskTemplateId: input.taskTemplateId ?? null,
       assignedToId,
+      reviewerId,
       priority: input.priority ?? "MEDIUM",
       status: input.status ?? TaskStatus.NOT_STARTED,
       dueDate: input.dueDate ?? null,
+      startDate: input.startDate ?? null,
+      notes: input.notes ?? null,
+      waitingFor: input.waitingFor ?? null,
       clientDependency: input.clientDependency ?? false,
       completionPct: input.completionPct ?? 0,
       reviewStatus: input.reviewStatus ?? "NOT_REVIEWED",
@@ -118,6 +164,33 @@ export async function createTask(
   }
 
   return task;
+}
+
+/**
+ * Verifies a member id belongs to the caller's organization.
+ *
+ * The id comes from a form, so it is never trusted — a foreign id would
+ * otherwise assign this organization's work to another tenant's staff.
+ */
+async function requireMemberId(
+  ctx: OrgContext,
+  memberId: string | null,
+  db: Db,
+): Promise<string | null> {
+  if (!memberId) return null;
+
+  const member = await db.organizationMember.findFirst({
+    where: {
+      id: memberId,
+      organizationId: ctx.organizationId,
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+  if (!member) {
+    throw new ForbiddenError("Member not found in this organization.");
+  }
+  return member.id;
 }
 
 async function resolveMemberId(

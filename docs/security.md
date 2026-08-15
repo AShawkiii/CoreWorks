@@ -97,6 +97,14 @@ action performs an authorization call, and that the permission strings named
 actually exist. It catches an unguarded action being added later; it does not
 prove runtime semantics — the integration suite does that.
 
+Some decisions need a database lookup before they can be made. Task editing is
+the first: a Team Member holds `task:update_own`, so whether they may edit
+depends on whether they are the assignee. That check lives in a module-local
+`requireTaskPermission` helper rather than inline. The guard test recognises
+such `require*` helpers as authorization calls **and separately asserts that
+each one performs a real check**, so a helper named `require…` cannot launder
+an unguarded action past it.
+
 ## Input validation
 
 Zod, on the server, for every mutation. The client form reuses the same schema
@@ -128,9 +136,21 @@ affected.
 This is a status-code defect, not an authorization hole — verified by
 inspecting what a Viewer actually receives on `/clients/new` and
 `/clients/[id]/edit`: no form, no submit control, and zero client field
-values in the HTML. The consequence is that a caching layer or crawler would
-treat a denied page as valid. Tracked for Phase 13 alongside the other
+values in the HTML. Re-verified in Phase 5 against `/tasks/new` and
+`/tasks/[id]/edit`, including a cross-tenant request, which leaked neither the
+form nor the task name. The consequence is that a caching layer or crawler
+would treat a denied page as valid. Tracked for Phase 13 alongside the other
 hardening items.
+
+### Refusals from actions that cannot return state
+
+`changeTaskStatusAction`, `deleteTaskAction`, and `deleteTaskCommentAction` are
+plain `<form action>` submissions from Server Components, so they have no
+`FormState` to return. Throwing would surface Next's generic error boundary,
+and in production the real reason is redacted — precisely the part the user
+needs. They redirect back with the message in `?error=`, rendered as an alert
+banner. The value is rendered as text, so React escapes it; verified live with
+a `<script>` payload.
 
 ## Audit trails
 

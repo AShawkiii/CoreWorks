@@ -54,6 +54,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/security.md`](docs/security.md) | Authentication, the role matrix, tenant isolation, validation, audit trails, and what is not yet implemented. |
 | [`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) | Every migrated legacy rule, its destination, parity status, known differences, and the tests covering it. |
 | [`docs/phase4-clients.md`](docs/phase4-clients.md) | The Clients module: what it consumes from Phase 3, list behaviours, the one deviation, security, and tests. |
+| [`docs/phase5-tasks.md`](docs/phase5-tasks.md) | The Tasks module: the status-change sequence, bulk semantics, the two-layer edit permission, and live verification results. |
 
 `deployment.md` arrives with Phase 14.
 
