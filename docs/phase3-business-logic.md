@@ -199,6 +199,13 @@ keys. Activity entries additionally snapshot `userEmail` so they stay readable
 after a user is removed.
 *Infrastructure correction, not a business-rule change.*
 
+> **Completed in Phase 9.** The two team view models still compared
+> `assignedToName` to `member.name` at the end of Phase 3, because that is
+> what the parity harness compares against. `taskBelongsToMember` now uses the
+> id when the task carries one and the name when it does not, so production
+> gets foreign keys and the harness still compares like for like. See
+> [`phase9-team-management.md`](./phase9-team-management.md) §2.
+
 ### DIFF-5 — `null` instead of `''` for absent values
 Legacy returned the empty string for "no value" (`computeDaysRemaining`,
 `computeDaysWaiting`, `bucketDaysWaiting`, `computeNextDeadline`). The ports

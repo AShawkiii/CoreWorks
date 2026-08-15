@@ -15,6 +15,7 @@ import {
 import { isIssueOpen } from "@/lib/domain/issue";
 import { computeSimpleCompletion } from "@/lib/domain/progress";
 import { flagStaleRequests, isRequestOpen } from "@/lib/domain/request";
+import { taskBelongsToMember } from "@/lib/domain/task";
 import type {
   DomainClient,
   DomainIssue,
@@ -90,7 +91,7 @@ export function buildTeamPerformanceSection(
   return members.map((member) => {
     const memberTasks = tasks.filter(
       (task) =>
-        task.assignedToName === member.name &&
+        taskBelongsToMember(task, member) &&
         task.status !== TaskStatus.CANCELLED,
     );
     const completion = computeSimpleCompletion(memberTasks);

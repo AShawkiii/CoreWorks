@@ -85,6 +85,8 @@ export const taskSelect = {
   completionPct: true,
   reviewStatus: true,
   client: { select: { name: true } },
+  // Assignments join by id, not name (audit D4) — see taskBelongsToMember.
+  assignedToId: true,
   assignedTo: { select: { user: { select: { name: true } } } },
 } satisfies Prisma.TaskSelect;
 
@@ -101,6 +103,7 @@ export function toDomainTask(row: TaskRow): DomainTask {
     period: row.period,
     frequency: row.frequency,
     assignedToName: row.assignedTo?.user.name ?? null,
+    assignedToId: row.assignedToId,
     priority: row.priority,
     status: row.status,
     dueDate: row.dueDate,

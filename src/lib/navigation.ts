@@ -140,13 +140,13 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Team Dashboard",
         icon: "team",
-        phase: 9,
+        href: "/team-dashboard",
         permission: "report:view",
       },
       {
         label: "Management Report",
         icon: "report",
-        phase: 9,
+        href: "/management-report",
         permission: "report:view",
       },
     ],

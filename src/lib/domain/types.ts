@@ -75,6 +75,14 @@ export interface DomainTask {
   period: Period | null;
   frequency: Frequency | null;
   assignedToName: string | null;
+  /**
+   * The assignee's member id (audit D4 / Phase 3 DIFF-4).
+   *
+   * Legacy had no such column — it joined assignments by employee NAME — so
+   * this is optional: parity fixtures omit it and the name path still runs.
+   * Every real query supplies it. See `taskBelongsToMember` in `task.ts`.
+   */
+  assignedToId?: string | null;
   priority: Priority;
   status: TaskStatus;
   dueDate: Date | null;

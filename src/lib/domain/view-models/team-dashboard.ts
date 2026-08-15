@@ -10,7 +10,7 @@
 import { computeDaysOverdue } from "@/lib/domain/date";
 import { Priority, TaskStatus } from "@/lib/domain/enums";
 import { computeSimpleCompletion } from "@/lib/domain/progress";
-import { isTaskOpen } from "@/lib/domain/task";
+import { isTaskOpen, taskBelongsToMember } from "@/lib/domain/task";
 import type { DomainMember, DomainTask } from "@/lib/domain/types";
 import { isOverloaded } from "@/lib/domain/workload";
 
@@ -44,8 +44,8 @@ export function buildTeamDashboardRows(
   overloadMargin = 0,
 ): TeamDashboardRow[] {
   return members.map((member) => {
-    const assignedTasks = tasks.filter(
-      (task) => task.assignedToName === member.name,
+    const assignedTasks = tasks.filter((task) =>
+      taskBelongsToMember(task, member),
     );
     const counted = assignedTasks.filter(
       (task) => task.status !== TaskStatus.CANCELLED,

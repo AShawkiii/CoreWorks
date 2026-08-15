@@ -7,6 +7,7 @@
  */
 
 import { TASK_CLOSED_STATUSES, TaskStatus } from "@/lib/domain/enums";
+import type { DomainMember, DomainTask } from "@/lib/domain/types";
 
 /**
  * Allowed transitions FROM each status. Same-status is always an allowed
@@ -88,4 +89,30 @@ export function validateTaskFields(task: TaskValidationInput): ValidationResult 
   if (!task.taskName) errors.push("Task Name is required.");
   if (!task.serviceArea) errors.push("Service Area is required.");
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Whether a task is assigned to a given member.
+ *
+ * Legacy matched assignments by employee NAME (`t['Assigned To'] ===
+ * e['Employee Name']`), which the audit records as defect D4: two people with
+ * the same display name each get credited with the other's work, so a team of
+ * two "John Smith"s reports four tasks where there are two. Phase 3's DIFF-4
+ * committed CoreWorks to real foreign keys.
+ *
+ * Both rules live here because both are needed. When the task carries an
+ * `assignedToId` — every query from the database does — the id decides, and
+ * the collision cannot happen. When it does not, the name is used, which is
+ * what the parity fixtures exercise: they mirror legacy rows, which have no
+ * ids, so the harness still compares like for like against the original
+ * `.gs`.
+ */
+export function taskBelongsToMember(
+  task: Pick<DomainTask, "assignedToName" | "assignedToId">,
+  member: Pick<DomainMember, "id" | "name">,
+): boolean {
+  if (task.assignedToId !== undefined) {
+    return task.assignedToId === member.id;
+  }
+  return task.assignedToName === member.name;
 }
