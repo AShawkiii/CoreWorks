@@ -120,6 +120,18 @@ Pages call `notFound()` rather than showing "forbidden" for a section the user
 cannot access — telling someone a page exists but is off-limits is itself
 information.
 
+**Known issue (found in Phase 4):** a programmatic `notFound()` currently
+returns **HTTP 200** with the not-found body, rather than 404. Next's own
+routing still returns 404 for an unknown path; only the in-page call is
+affected.
+
+This is a status-code defect, not an authorization hole — verified by
+inspecting what a Viewer actually receives on `/clients/new` and
+`/clients/[id]/edit`: no form, no submit control, and zero client field
+values in the HTML. The consequence is that a caching layer or crawler would
+treat a denied page as valid. Tracked for Phase 13 alongside the other
+hardening items.
+
 ## Audit trails
 
 Two separate logs, on purpose:

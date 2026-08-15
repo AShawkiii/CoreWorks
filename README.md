@@ -14,8 +14,9 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **1** | Project scaffold, database schema, authentication, design tokens | ✅ **Complete** |
 | **2** | Organization, users, roles, permissions, app shell | ✅ **Complete** |
 | **3** | Business-logic port + differential parity suite + Control Center | ✅ **Complete** |
-| 4 | Clients module | Next |
-| 5–14 | Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
+| **4** | Clients module — list, create, detail, edit, archive, contacts | ✅ **Complete** |
+| 5 | Tasks module | Next |
+| 6–14 | Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -52,6 +53,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/architecture.md`](docs/architecture.md) | Application layering, module map, server/client boundary, design tokens, extensibility. |
 | [`docs/security.md`](docs/security.md) | Authentication, the role matrix, tenant isolation, validation, audit trails, and what is not yet implemented. |
 | [`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) | Every migrated legacy rule, its destination, parity status, known differences, and the tests covering it. |
+| [`docs/phase4-clients.md`](docs/phase4-clients.md) | The Clients module: what it consumes from Phase 3, list behaviours, the one deviation, security, and tests. |
 
 `deployment.md` arrives with Phase 14.
 

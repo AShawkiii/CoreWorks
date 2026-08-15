@@ -62,7 +62,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Workspace",
     items: [
-      { label: "Clients", icon: "clients", phase: 4, permission: "client:view" },
+      {
+        label: "Clients",
+        icon: "clients",
+        href: "/clients",
+        permission: "client:view",
+      },
       { label: "Tasks", icon: "tasks", phase: 5, permission: "task:view" },
       { label: "Issues", icon: "issues", phase: 6, permission: "issue:view" },
       {
