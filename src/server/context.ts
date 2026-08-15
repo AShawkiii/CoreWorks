@@ -33,13 +33,45 @@ export class ForbiddenError extends Error {
  * route parameter, form field, or request body.
  */
 export interface OrgContext {
-  readonly userId: string;
+  /**
+   * Null only for a scheduled run, which has no signed-in user (audit §9).
+   * `ActivityLog.userId` is nullable for the same reason and carries a
+   * `userEmail` snapshot alongside, so a system-written entry still reads
+   * sensibly. Every request-scoped context has a real id.
+   */
+  readonly userId: string | null;
   readonly userEmail: string;
   readonly userName: string;
   readonly organizationId: string;
   readonly organizationSlug: string;
-  readonly membershipId: string;
+  /** Null for a scheduled run — a job is not a member of the organization. */
+  readonly membershipId: string | null;
   readonly role: OrgRole;
+}
+
+/**
+ * The identity a scheduled job writes activity under.
+ *
+ * Legacy's triggers wrote as whoever owned the script; CoreWorks records the
+ * absence of a person explicitly rather than attributing a nightly
+ * recalculation to a member of staff.
+ */
+export const SYSTEM_ACTOR_EMAIL = "system@coreworks.local";
+
+export function systemContext(
+  organizationId: string,
+  organizationSlug: string,
+  role: OrgRole,
+): OrgContext {
+  return {
+    userId: null,
+    userEmail: SYSTEM_ACTOR_EMAIL,
+    userName: "Scheduled job",
+    organizationId,
+    organizationSlug,
+    membershipId: null,
+    role,
+  };
 }
 
 export function assertPermission(
@@ -64,4 +96,18 @@ export function assertSameOrg(
   if (!record || record.organizationId !== context.organizationId) {
     throw new ForbiddenError("Record not found in this organization.");
   }
+}
+
+/**
+ * The signed-in user's id, for operations that are meaningless without one.
+ *
+ * Changing your own password or profile is inherently a person's action; a
+ * scheduled job reaching one of these would be a bug, so it fails loudly here
+ * rather than writing against a null id.
+ */
+export function requireUserId(ctx: OrgContext): string {
+  if (ctx.userId === null) {
+    throw new ForbiddenError("This action requires a signed-in user.");
+  }
+  return ctx.userId;
 }

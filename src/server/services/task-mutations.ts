@@ -3,7 +3,11 @@ import { prisma } from "@/lib/db";
 import { TASK_STATUS_LABELS } from "@/lib/domain/labels";
 import { nextStatusAllowed } from "@/lib/domain/task";
 import type { UpdateTaskInput } from "@/lib/validation/task";
-import { ForbiddenError, type OrgContext } from "@/server/context";
+import {
+  ForbiddenError,
+  requireUserId,
+  type OrgContext,
+} from "@/server/context";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { recalculateClientHealth } from "@/server/services/health";
 import { recalculateClientProgress } from "@/server/services/progress";
@@ -327,7 +331,9 @@ export async function deleteTaskComment(
     throw new ForbiddenError("Comment not found.");
   }
 
-  if (comment.authorId !== ctx.userId) {
+  // requireUserId, not a bare compare: a comment whose author was deleted
+  // has a null authorId, and a null-vs-null match would let anyone remove it.
+  if (comment.authorId !== requireUserId(ctx)) {
     throw new TaskOperationError("You can only delete your own comments.");
   }
 

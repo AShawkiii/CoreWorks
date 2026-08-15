@@ -17,7 +17,7 @@ import type { TaskComment } from "@/server/services/task-queries";
 interface CommentsPanelProps {
   taskId: string;
   comments: TaskComment[];
-  currentUserId: string;
+  currentUserId: string | null;
 }
 
 function PostButton() {
@@ -78,7 +78,10 @@ export function CommentsPanel({
                   <time className="text-xs text-muted-foreground">
                     {formatter.format(comment.createdAt)}
                   </time>
-                  {comment.authorId === currentUserId ? (
+                  {/* Both null must NOT match: a comment whose author was deleted
+                      has a null authorId, and matching it would offer the delete
+                      control to the wrong person. The server re-checks anyway. */}
+                  {currentUserId !== null && comment.authorId === currentUserId ? (
                     <form action={deleteTaskCommentAction}>
                       <input type="hidden" name="taskId" value={taskId} />
                       <input type="hidden" name="commentId" value={comment.id} />

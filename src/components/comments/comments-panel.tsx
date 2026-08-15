@@ -29,7 +29,7 @@ interface CommentsPanelProps {
   parentField: string;
   parentId: string;
   comments: CommentItem[];
-  currentUserId: string;
+  currentUserId: string | null;
   addAction: (prev: FormState, formData: FormData) => Promise<FormState>;
   deleteAction: (formData: FormData) => Promise<void>;
 }
@@ -95,7 +95,10 @@ export function CommentsPanel({
                   <time className="text-xs text-muted-foreground">
                     {formatter.format(comment.createdAt)}
                   </time>
-                  {comment.authorId === currentUserId ? (
+                  {/* Both null must NOT match: a comment whose author was deleted
+                      has a null authorId, and matching it would offer the delete
+                      control to the wrong person. The server re-checks anyway. */}
+                  {currentUserId !== null && comment.authorId === currentUserId ? (
                     <form action={deleteAction}>
                       <input
                         type="hidden"

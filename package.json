@@ -2,7 +2,7 @@
   "name": "coreworks",
   "version": "0.1.0",
   "private": true,
-  "description": "CoreWorks — client management and financial operations platform",
+  "description": "CoreWorks \u2014 client management and financial operations platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,7 +17,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "job": "tsx scripts/run-job.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

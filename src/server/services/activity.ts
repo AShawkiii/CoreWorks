@@ -61,6 +61,17 @@ export const ACTIVITY_ACTIONS = {
   REQUEST_CREATED: "Client Request Created",
   REQUEST_STATUS_CHANGED: "Client Request Status Changed",
   REQUEST_UPDATED: "Client Request Updated",
+  /**
+   * Monthly close. Legacy had no logged path — the close lived in a sheet and
+   * its stage cells were edited directly, with the summary kept current by
+   * live formulas rather than by any service. A web backend has no unlogged
+   * edit path, and a close is exactly the kind of record a partner later asks
+   * "who marked this done".
+   */
+  CLOSE_OPENED: "Monthly Close Opened",
+  CLOSE_STAGE_CHANGED: "Close Stage Changed",
+  CLOSE_STATUS_CHANGED: "Close Status Changed",
+  CLOSE_REVIEW_CHANGED: "Close Review Changed",
   MEMBER_ADDED: "Member Added",
   MEMBER_UPDATED: "Member Updated",
   MEMBER_DEACTIVATED: "Member Deactivated",

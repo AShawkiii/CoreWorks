@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db";
-import { ForbiddenError, type OrgContext } from "@/server/context";
+import {
+  ForbiddenError,
+  requireUserId,
+  type OrgContext,
+} from "@/server/context";
 
 /**
  * Comments on issues and client requests (master prompt §43).
@@ -95,7 +99,9 @@ export async function deleteComment(
   });
   if (!comment) throw new ForbiddenError("Comment not found.");
 
-  if (comment.authorId !== ctx.userId) {
+  // requireUserId, not a bare compare: a comment whose author was deleted
+  // has a null authorId, and a null-vs-null match would let anyone remove it.
+  if (comment.authorId !== requireUserId(ctx)) {
     throw new CommentOperationError("You can only delete your own comments.");
   }
 

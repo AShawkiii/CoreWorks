@@ -15,8 +15,14 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **2** | Organization, users, roles, permissions, app shell | ✅ **Complete** |
 | **3** | Business-logic port + differential parity suite + Control Center | ✅ **Complete** |
 | **4** | Clients module — list, create, detail, edit, archive, contacts | ✅ **Complete** |
-| 5 | Tasks module | Next |
-| 6–14 | Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
+| **5** | Tasks module — list, detail, edit, bulk operations, comments | ✅ **Complete** |
+| **6** | Issues and Client Requests | ✅ **Complete** |
+| **7** | Control Center — the 14 KPIs and their drill-downs | ✅ **Complete** |
+| **8** | Client Dashboard | ✅ **Complete** |
+| **9** | Team Dashboard and Management Report | ✅ **Complete** |
+| **10** | Monthly Close, template catalog, scheduled generation jobs | ✅ **Complete** |
+| 11 | Activity Log and Notifications | Next |
+| 12–14 | Theming, import/export, testing and deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -59,6 +65,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase7-control-center.md`](docs/phase7-control-center.md) | The Control Center: the 14 KPIs, how each drill-down is proven to match its number, and the two legacy behaviours now stated on the page. |
 | [`docs/phase8-client-dashboard.md`](docs/phase8-client-dashboard.md) | The Client Dashboard: the seven sections and their two different scopes, and a conflict between legacy's own two task-sort implementations. |
 | [`docs/phase9-team-management.md`](docs/phase9-team-management.md) | Team Dashboard and Management Report: the workload rules, the four report sections, and the audit D4 fix to how assignments are matched. |
+| [`docs/phase10-close-templates-jobs.md`](docs/phase10-close-templates-jobs.md) | Monthly Close, the template catalog, and the scheduled jobs: two completion figures, the blank-stage trap, and why the daily recalculation is necessary rather than convenient. |
 
 `deployment.md` arrives with Phase 14.
 
@@ -92,6 +99,19 @@ npm run db:migrate
 npm run db:seed           # optional demo organization
 npm run dev
 ```
+
+Two scheduled jobs replace the legacy Apps Script triggers (audit §9).
+They have no built-in scheduler — point cron, a platform scheduler, or a
+workflow at them:
+
+```bash
+npm run job -- daily-recalculation   # cron: 0 2 * * *
+npm run job -- monthly-generation    # cron: 0 3 1 * *
+npm run job -- monthly-generation 2026-09
+```
+
+Both are safe to re-run and both sweep every organization. The runner exits
+non-zero if any tenant failed, so a partial run cannot look like success.
 
 Full instructions, including PostgreSQL setup and troubleshooting, are in
 [`docs/setup.md`](docs/setup.md).

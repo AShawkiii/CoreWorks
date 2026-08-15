@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import type { UpdateOrganizationInput } from "@/lib/validation/organization";
 import { ACTIVITY_ACTIONS, logActivity } from "@/server/services/activity";
 import { MemberOperationError } from "@/server/services/members";
-import type { OrgContext } from "@/server/context";
+import { requireUserId, type OrgContext } from "@/server/context";
 
 /** Organization profile and the signed-in user's own account. */
 
@@ -96,7 +96,7 @@ export async function updateOwnProfile(
   name: string,
 ): Promise<void> {
   await prisma.user.update({
-    where: { id: ctx.userId },
+    where: { id: requireUserId(ctx) },
     data: { name },
   });
 }
@@ -113,8 +113,10 @@ export async function changeOwnPassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<void> {
+  const userId = requireUserId(ctx);
+
   const user = await prisma.user.findUnique({
-    where: { id: ctx.userId },
+    where: { id: userId },
     select: { passwordHash: true },
   });
 
@@ -133,13 +135,13 @@ export async function changeOwnPassword(
 
   await prisma.$transaction(async (tx) => {
     await tx.user.update({
-      where: { id: ctx.userId },
+      where: { id: userId },
       data: { passwordHash },
     });
 
     // Any outstanding reset link is void once the password changes.
     await tx.passwordResetToken.deleteMany({
-      where: { userId: ctx.userId, usedAt: null },
+      where: { userId, usedAt: null },
     });
   });
 }

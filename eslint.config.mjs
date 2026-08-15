@@ -22,6 +22,26 @@ const eslintConfig = [
   },
   ...coreWebVitals,
   ...typescriptConfig,
+  {
+    rules: {
+      /**
+       * A leading underscore marks a parameter that exists to satisfy a
+       * signature rather than to be used — `useActionState` hands every server
+       * action `(prevState, formData)` whether or not it needs either. The
+       * codebase already writes `_prevState`; this makes that convention
+       * enforced rather than incidental, so a genuinely forgotten variable
+       * still gets reported.
+       */
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;
