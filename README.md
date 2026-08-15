@@ -13,8 +13,9 @@ CoreWorks answers, at a glance: which clients are on track, at risk, or delayed;
 | **0** | Repository audit, legacy preservation, migration plan | ✅ **Complete** |
 | **1** | Project scaffold, database schema, authentication, design tokens | ✅ **Complete** |
 | **2** | Organization, users, roles, permissions, app shell | ✅ **Complete** |
-| 3 | Business-logic port + parity tests | Next |
-| 4–14 | Clients, Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
+| **3** | Business-logic port + differential parity suite + Control Center | ✅ **Complete** |
+| 4 | Clients module | Next |
+| 5–14 | Tasks, Issues, Requests, dashboards, close, theming, import/export, deployment | Pending |
 
 Full sequencing: [`docs/architecture-audit.md` §17](docs/architecture-audit.md).
 
@@ -50,9 +51,9 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/database.md`](docs/database.md) | Schema design: multi-tenancy, identity split, display IDs, normalization, stored vs derived fields. |
 | [`docs/architecture.md`](docs/architecture.md) | Application layering, module map, server/client boundary, design tokens, extensibility. |
 | [`docs/security.md`](docs/security.md) | Authentication, the role matrix, tenant isolation, validation, audit trails, and what is not yet implemented. |
+| [`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) | Every migrated legacy rule, its destination, parity status, known differences, and the tests covering it. |
 
-`business-rules.md` arrives with the logic port in Phase 3, and
-`deployment.md` with Phase 14.
+`deployment.md` arrives with Phase 14.
 
 ---
 
@@ -66,7 +67,12 @@ Defined in the legacy system, cited in the audit, and preserved exactly. Summari
 - **Issue surfacing** — open Critical/High issues, or any open issue past its deadline; sorted most severe, then oldest.
 - **Task generation** — recurring work expands from Service Package templates, deduplicated on `client|serviceArea|taskName|period`, so generation is always safe to re-run and never rewrites history.
 
-See [audit §6](docs/architecture-audit.md) for the authoritative statements with source citations.
+See [audit §6](docs/architecture-audit.md) for the authoritative statements with source citations, and
+[`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) for how each one was migrated and proven.
+
+All of these are now ported to TypeScript and verified against the original
+Apps Script implementation by 1,670 differential assertions — the legacy code
+is loaded into the test process and run side by side with the port.
 
 ---
 

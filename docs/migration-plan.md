@@ -35,11 +35,38 @@ The legacy author separated every engine into a pure `*Logic.gs` (no `Spreadshee
 4. Run. A failure means the port is wrong, not the test.
 5. Only then wire it into a repository/service.
 
-### 2.3 Parity gate
-Phase 3 exits when **all 110 passing legacy business-logic assertions pass against the TypeScript ports**. The 111th (`webappTemplates.test.js`) is intentionally dropped — it tests Apps Script HTML templates that CoreWorks replaces, and it documents legacy defect D1.
+### 2.3 Parity gate — as executed
+
+The gate was set stronger than originally planned. Rather than re-asserting
+legacy's expected values in new tests, Phase 3 loads the **real legacy `.gs`
+files** into the test process (Node `vm`, the same mechanism the legacy suite
+uses) and runs both implementations over one shared fixture:
+
+```
+fixture ──┬─► legacy row  ─► legacy .gs function ─┐
+          │                                        ├─► compared
+          └─► domain record ─► TypeScript port    ─┘
+```
+
+That removes the weakest link in the original plan — a port could otherwise
+match my *reading* of the legacy code rather than its behaviour.
+
+**Result: 1,670 differential assertions passing**, including 600 exhaustive
+cases over the client-health cross-product and the full 7×7 task-transition
+matrix. The legacy suite remains untouched and still runs (110/111, the one
+failure being the pre-existing D1 template bug).
+
+Rules that existed only as spreadsheet formulas (monthly close) or inside
+sheet-writing engines (client/team dashboards) have no legacy JavaScript to
+diff against; those are covered by direct unit tests against the documented
+formula semantics, and are listed as such in
+[`phase3-business-logic.md`](./phase3-business-logic.md) §2.3.
 
 ### 2.4 Deliberate deviations
-Only three, each with justification recorded in the audit:
+
+Seven, all documented with rationale in
+[`phase3-business-logic.md`](./phase3-business-logic.md) §4. The three
+anticipated here originally:
 
 | Change | Reason |
 |---|---|
@@ -47,7 +74,12 @@ Only three, each with justification recorded in the audit:
 | Name-based FKs → real FKs | Audit D4 — renames orphan history |
 | `CURRENT_USER` from session, not template | Audit D1 — legacy bug, not reproduced |
 
-Everything else ports unchanged. Any further deviation requires an entry in `business-rules.md` explaining what changed and why.
+Plus four found during the port: runtime enum checks moved to the type system,
+`null` replacing `''` for absent values, Days Waiting derived rather than
+stored, and legacy's `COUNTA` blank-stage behaviour in monthly close preserved
+but made unreachable by materialising all 18 stages.
+
+Everything else ports unchanged.
 
 ---
 

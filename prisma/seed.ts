@@ -5,16 +5,15 @@
  * `slug: "demo-*"` and `isDemoData: true` in its settings, so a production
  * deployment can assert that no seeded organization exists.
  *
- * Deliberately does NOT generate tasks from templates. Template expansion,
- * due-date computation, and the frequency rules are legacy business logic
- * that is ported with its parity test suite in Phase 3 (audit §14.1);
- * reimplementing them here would create a second, divergent copy of the rules.
- * The tasks below are written explicitly as fixtures.
+ * Task fixtures below are written explicitly rather than generated from
+ * templates: the seed's job is to produce a known, varied dataset for
+ * development, and running the generator would make the fixture set depend on
+ * today's date.
  *
- * For the same reason, derived fields (client health, completion %, next
- * deadline) are left at their schema defaults. They are populated by the
- * health and progress engines once those land in Phase 3 — a seeded value
- * would be a guess at a calculation this phase has not yet ported.
+ * Derived fields (client health, completion %, next deadline) are NOT
+ * hardcoded. Since Phase 3, the seed calls the real health and progress
+ * engines at the end, so the demo data is exactly what the ported rules
+ * produce — a seeded guess would diverge from the live calculation.
  */
 
 import "dotenv/config";
@@ -45,6 +44,8 @@ import {
   catalogServiceAreas,
   SERVICE_PACKAGE_NAMES,
 } from "../src/lib/domain/task-template-catalog";
+import { recalculateClientHealth } from "../src/server/services/health";
+import { recalculateClientProgress } from "../src/server/services/progress";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error("DATABASE_URL is not set.");
@@ -192,6 +193,7 @@ async function main(): Promise<void> {
           capacity: person.capacity,
           isActive: true,
         },
+        select: { id: true, userId: true },
       }),
     );
   }
@@ -449,6 +451,28 @@ async function main(): Promise<void> {
     },
   });
 
+  // Run the ported engines so health and completion reflect the real rules.
+  const seedContext = {
+    userId: members[0]?.userId ?? "",
+    userEmail: PEOPLE[0].email,
+    userName: PEOPLE[0].name,
+    organizationId: organization.id,
+    organizationSlug: ORG_SLUG,
+    membershipId: members[0]?.id ?? "",
+    role: OrgRole.OWNER,
+  };
+
+  for (const id of clientIds) {
+    await recalculateClientProgress(organization.id, id);
+    await recalculateClientHealth(seedContext, id);
+  }
+
+  const healthCounts = await prisma.client.groupBy({
+    by: ["health"],
+    where: { organizationId: organization.id },
+    _count: true,
+  });
+
   console.log(`  organization   ${organization.name} (${ORG_SLUG})`);
   console.log(`  members        ${PEOPLE.length}`);
   console.log(`  services       ${serviceAreas.length}`);
@@ -458,6 +482,9 @@ async function main(): Promise<void> {
   console.log(`  tasks          ${taskFixtures.length}`);
   console.log(`  issues         ${issueFixtures.length}`);
   console.log(`  requests       ${requestFixtures.length}`);
+  console.log(
+    `  health         ${healthCounts.map((h) => `${h.health}=${h._count}`).join(" ")}`,
+  );
   console.log(`\n  Sign in: ${PEOPLE[0].email} / ${DEMO_PASSWORD}`);
 }
 

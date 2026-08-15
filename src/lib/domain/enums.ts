@@ -12,11 +12,17 @@
 
 import {
   ClientHealth,
+  CloseStageStatus,
+  CloseStatus,
   ContractStatus,
+  Frequency,
   IssueSeverity,
   IssueStatus,
   Priority,
+  ReportingFrequency,
   RequestStatus,
+  ReviewStatus,
+  TaskCategory,
   TaskStatus,
 } from "@/generated/prisma/enums";
 
@@ -156,12 +162,24 @@ export type MonthlyCloseStage = (typeof MONTHLY_CLOSE_STAGES)[number];
 /** Service area that gets the following-month due date (audit §6.4). */
 export const MONTH_END_CLOSING_SERVICE_AREA = "Month-End Closing";
 
+/**
+ * Re-exported so the pure domain layer imports its vocabulary from one place
+ * and never reaches into the generated Prisma output directly. The generated
+ * enums file is a standalone module of plain const objects with no imports,
+ * so this carries no Prisma runtime into the domain.
+ */
 export {
   ClientHealth,
+  CloseStageStatus,
+  CloseStatus,
   ContractStatus,
+  Frequency,
   IssueSeverity,
   IssueStatus,
   Priority,
+  ReportingFrequency,
   RequestStatus,
+  ReviewStatus,
+  TaskCategory,
   TaskStatus,
 };
