@@ -1,4 +1,4 @@
-import { ArchiveRestore, ArchiveX, Pencil } from "lucide-react";
+import { ArchiveRestore, ArchiveX, LayoutDashboard, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -122,6 +122,15 @@ export default async function ClientDetailPage({
         description={`${vm.clientDisplayId}${vm.companyName ? ` · ${vm.companyName}` : ""}${vm.industry ? ` · ${vm.industry}` : ""}`}
         actions={
           <div className="flex items-center gap-2">
+            {hasPermission(ctx.role, "report:view") ? (
+              <Link
+                href={{ pathname: "/client-dashboard", query: { clientId: id } }}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                <LayoutDashboard aria-hidden="true" />
+                Dashboard
+              </Link>
+            ) : null}
             {canEdit ? (
               <Link
                 href={`/clients/${id}/edit`}

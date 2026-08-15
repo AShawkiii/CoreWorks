@@ -134,7 +134,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         label: "Client Dashboard",
         icon: "clientDashboard",
-        phase: 8,
+        href: "/client-dashboard",
         permission: "report:view",
       },
       {

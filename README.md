@@ -57,6 +57,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase5-tasks.md`](docs/phase5-tasks.md) | The Tasks module: the status-change sequence, bulk semantics, the two-layer edit permission, and live verification results. |
 | [`docs/phase6-issues-requests.md`](docs/phase6-issues-requests.md) | Issues and Client Requests: why neither has a state machine, the resolve/receive stamps, request ageing, and live verification results. |
 | [`docs/phase7-control-center.md`](docs/phase7-control-center.md) | The Control Center: the 14 KPIs, how each drill-down is proven to match its number, and the two legacy behaviours now stated on the page. |
+| [`docs/phase8-client-dashboard.md`](docs/phase8-client-dashboard.md) | The Client Dashboard: the seven sections and their two different scopes, and a conflict between legacy's own two task-sort implementations. |
 
 `deployment.md` arrives with Phase 14.
 
