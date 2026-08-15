@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import {
   DEFAULT_SETTINGS,
@@ -5,6 +6,8 @@ import {
   type SettingKey,
 } from "@/lib/domain/enums";
 import type { HealthThresholds } from "@/lib/domain/types";
+
+type Db = Prisma.TransactionClient | typeof prisma;
 
 /**
  * Organization settings.
@@ -49,11 +52,20 @@ export function healthThresholdsFrom(settings: OrgSettings): HealthThresholds {
   };
 }
 
-/** Seeds the default settings rows for a new organization. */
-export async function seedOrgSettings(organizationId: string): Promise<void> {
+/**
+ * Seeds the default settings rows for a new organization.
+ *
+ * Accepts a transaction client so a bootstrap that fails later leaves no
+ * settings behind — same `db` parameter convention as `nextDisplayId` and
+ * `logAudit`.
+ */
+export async function seedOrgSettings(
+  organizationId: string,
+  db: Db = prisma,
+): Promise<void> {
   const keys = Object.keys(DEFAULT_SETTINGS) as SettingKey[];
 
-  await prisma.organizationSetting.createMany({
+  await db.organizationSetting.createMany({
     data: keys.map((key) => ({
       organizationId,
       category: SETTING_CATEGORY[key],

@@ -368,6 +368,14 @@ Writing to the trail can never refuse a sign-in — every write is wrapped and
 logged on failure. A trail that can lock people out is a liability, not a
 control.
 
+Creating an organization is recorded here too, as
+`organization.bootstrapped`. It is the one privileged operation with no
+session behind it — `npm run bootstrap`, authorized by shell access to the
+deployment rather than by a role — so a record of when a tenant appeared, and
+which account became its Owner, is worth keeping. It is written inside the
+same transaction as the organization itself, so a rolled-back bootstrap
+leaves no entry claiming one happened.
+
 Notifications are **not** governed by the role matrix. They are addressed to a
 user id and every query is scoped by it, so `/notifications` and
 `/settings/notifications` require authentication only: no role grants sight of

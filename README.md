@@ -109,6 +109,20 @@ npm run db:seed           # optional demo organization
 npm run dev
 ```
 
+`db:seed` is a development fixture with a password committed to this
+repository. To create a real organization — the only supported way, in any
+environment — use the bootstrap instead:
+
+```bash
+npm run bootstrap -- --name "Meridian Advisory" \
+                     --owner-name "Amara Okafor" \
+                     --owner-email amara@meridian.example
+```
+
+It prompts for the password rather than taking it as an argument, and creates
+the organization, its settings, the Owner account and membership in one
+transaction. See [`docs/deployment.md`](docs/deployment.md) §5.
+
 Two scheduled jobs replace the legacy Apps Script triggers (audit §9).
 They have no built-in scheduler — point cron, a platform scheduler, or a
 workflow at them:

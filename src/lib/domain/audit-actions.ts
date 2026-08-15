@@ -26,6 +26,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "password_reset.rate_limited": "Blocked — too many reset requests",
   "data.export": "Exported data",
   "data.import": "Imported data",
+  "organization.bootstrapped": "Organization created",
 };
 
 export function auditActionLabel(action: string): string {

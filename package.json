@@ -16,6 +16,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "bootstrap": "tsx scripts/bootstrap-org.ts",
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate",
     "job": "tsx scripts/run-job.ts"

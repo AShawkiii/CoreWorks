@@ -34,7 +34,7 @@ complete list; these are the ones a deployment must set.
 | `DATABASE_URL` | yes | PostgreSQL connection string |
 | `AUTH_SECRET` | yes | Signs session tokens. `openssl rand -base64 32` |
 | `AUTH_URL` | yes | The canonical origin, e.g. `https://coreworks.example.com` |
-| `NEXT_PUBLIC_APP_URL` | yes | Same origin; used for absolute links in the browser |
+| `NEXT_PUBLIC_APP_URL` | recommended | Same origin. Read in exactly one place today — the development-only reset-link log — so nothing breaks without it, but set it so it is correct when something does depend on it |
 | `NODE_ENV` | yes | `production` |
 
 Three rules, each of which has a specific failure mode behind it:
@@ -175,12 +175,80 @@ Run them on **one** instance, not on every replica.
 
 ---
 
-## 5. Before the first sign-in
+## 5. Creating the first organization
 
-### Remove the demo data
+Four operations touch this database and they are routinely confused with one
+another. They are not interchangeable:
 
-`npm run db:seed` creates a demo organization with a known password. It is a
-development fixture and must not exist in production. The seeded organization
+| Operation | Command | What it is for | Production? |
+|---|---|---|---|
+| **Migrations** | `npm run db:deploy` | Creates and updates the *schema* — tables, indexes, constraints. Never data | **Required** |
+| **Bootstrap** | `npm run bootstrap` | Creates one organization and its first Owner. The only supported way to create a tenant | **Required, once** |
+| **Seed** | `npm run db:seed` | Creates a demo organization with a password committed to this repository, plus fictional clients and tasks | **Never** |
+| **CSV import** | Settings → Import & export | Loads *business data* into an organization that already exists, signed in as a member of it | Optional |
+
+### The bootstrap
+
+Nothing else in CoreWorks creates an `Organization`. There is no public signup
+route, and **CSV import cannot do it**: the importer accepts eleven sheets —
+`EMPLOYEES`, `SERVICES`, `SERVICE_PACKAGES`, `TASK_TEMPLATES`, `CLIENTS`,
+`TASKS`, `CLIENT_REQUESTS`, `ISSUES`, `MONTHLY_CLOSE`, `ACTIVITY_LOG`,
+`SETTINGS` — none of them `ORGANIZATION`, and every import runs inside an
+`organizationId` taken from the session of somebody already signed in.
+
+```bash
+npm run bootstrap -- \
+  --name "Meridian Advisory" \
+  --owner-name "Amara Okafor" \
+  --owner-email amara.okafor@meridian.example
+```
+
+It creates, in **one transaction**: the organization, its default settings
+(the legacy SETTINGS values from audit §6.1), a theme row, the Owner's user
+account with a bcrypt hash, an `OWNER` membership with display ID `EMP-001`,
+and the member counter that the next invitation continues from. If any step
+fails, none of it remains — there is no half-created tenant to unpick.
+
+`--slug` is derived from `--name` when omitted, and validated either way
+against the same reserved-word rule the Settings screen uses. Pass it
+explicitly when the derived value is not what you want, or when the name does
+not reduce to a usable slug.
+
+**The password is never a command-line argument.** Anything on `argv` is
+visible to every other process through `ps` and is recorded in shell history.
+The script reads it from `COREWORKS_OWNER_PASSWORD` when set, and otherwise
+prompts twice with the echo suppressed. It is never printed and never logged.
+The 12-character minimum is the same one the application enforces everywhere
+else.
+
+Passing `--password` is refused with an explanation rather than silently
+accepted.
+
+For unattended provisioning:
+
+```bash
+COREWORKS_OWNER_PASSWORD="$(cat /run/secrets/owner-password)" \
+  npm run bootstrap -- --name "…" --owner-name "…" --owner-email "…"
+```
+
+Exit code is `0` on success, `2` for a usage or input error, `1` for anything
+else. Re-running with a slug or an email that already exists is refused
+cleanly and changes nothing, so a failed provisioning run is safe to repeat.
+
+An existing account is **refused rather than adopted** — bootstrap sets a
+password, so silently reusing an address would either ignore the password you
+supplied or overwrite somebody's existing one. Add an existing person to an
+organization from Settings → Members instead.
+
+The bootstrap is deliberately **not an HTTP endpoint**. Every authorization
+decision in CoreWorks starts from a session and an organization; creating the
+first organization has neither, so exposing it over HTTP would mean an
+unauthenticated route that can mint an Owner. Shell access to the deployment
+is the authorization, exactly as it is for `prisma migrate deploy`.
+
+### Confirm the demo data is absent
+
+`npm run db:seed` must never run against production. The seeded organization
 is marked so its absence can be asserted rather than assumed:
 
 ```sql
@@ -190,17 +258,28 @@ JOIN "Organization" o ON o.id = s."organizationId"
 WHERE s.key = 'IS_DEMO_DATA' AND s.value = 'true';
 ```
 
-This must return no rows. If it returns any, that organization was seeded, and
-its accounts share a password that is in the repository.
+This must return no rows. If it returns any, that organization was seeded and
+its accounts share a password that is in this repository. A bootstrapped
+organization never carries that marker, so this check cannot produce a false
+alarm on a real tenant.
 
-### Create the first real organization
+### Then load the business data
 
-Import is the intended path — the whole point of Phase 13. Import the
-`ORGANIZATION`, `EMPLOYEES`, `SERVICE_PACKAGES` and `CLIENTS` sheets in
-dependency order ([`migration-plan.md` §3.3](./migration-plan.md)), then set
-the first Owner's password through the reset flow.
+Sign in as the Owner, then import from Settings → Import & export in
+dependency order ([`migration-plan.md` §3.3](./migration-plan.md)):
 
-Note the delivery gap below before relying on that last step.
+```
+EMPLOYEES → SERVICES → SERVICE_PACKAGES → TASK_TEMPLATES → CLIENTS
+         → TASKS → CLIENT_REQUESTS → ISSUES → MONTHLY_CLOSE
+         → ACTIVITY_LOG → SETTINGS
+```
+
+The importer refuses a file whose prerequisites are absent rather than
+rejecting every row for an unresolvable reference, so a sequencing mistake
+reads as a sequencing mistake.
+
+Note the delivery gap in §6 before relying on the password-reset flow for
+anyone.
 
 ---
 
@@ -295,6 +374,27 @@ npx prisma migrate status
 confirm both the log output and a zero exit code.
 
 **Demo data is absent:** the query in §5.
+
+**The organization was bootstrapped correctly:**
+
+```sql
+SELECT o.slug,
+       m."displayId",
+       m.role,
+       u.email,
+       left(u."passwordHash", 7)          AS hash_prefix,
+       (SELECT count(*) FROM "OrganizationSetting" s
+         WHERE s."organizationId" = o.id) AS settings
+FROM "Organization" o
+JOIN "OrganizationMember" m ON m."organizationId" = o.id
+JOIN "User" u ON u.id = m."userId"
+WHERE m.role = 'OWNER';
+```
+
+Expect one row per organization: role `OWNER`, display ID `EMP-001`, six
+settings, and a hash prefix of `$2a$12$` or `$2b$12$`. A `hash_prefix` that
+looks like anything else means a password was stored unhashed — it never can
+be through the bootstrap, but this is the check that would catch it.
 
 ---
 
