@@ -42,8 +42,25 @@ export const ACTIVITY_ACTIONS = {
   MONTHLY_TASKS_GENERATED: "Monthly Tasks Generated",
   ISSUE_CREATED: "Issue Created",
   ISSUE_RESOLVED: "Issue Resolved",
-  REQUEST_CREATED: "Request Created",
-  REQUEST_UPDATED: "Request Updated",
+  /**
+   * Net-new. Legacy logged only the resolve path (`resolveIssue`); every
+   * other status move was a direct sheet edit its `onEdit` handler ignored,
+   * so it left no trace. A web backend has no unlogged edit path, and leaving
+   * these silent would be a worse audit trail than legacy's, not a faithful
+   * one.
+   */
+  ISSUE_STATUS_CHANGED: "Issue Status Changed",
+  ISSUE_UPDATED: "Issue Updated",
+  /**
+   * Legacy strings verbatim: `ClientRequestService.gs` logs "Client Request
+   * Created" and "Client Request Status Changed". These constants previously
+   * read "Request Created"/"Request Updated"; nothing consumed them yet, and
+   * the activity feed is user-visible legacy output, so they are corrected to
+   * the originals here rather than left divergent.
+   */
+  REQUEST_CREATED: "Client Request Created",
+  REQUEST_STATUS_CHANGED: "Client Request Status Changed",
+  REQUEST_UPDATED: "Client Request Updated",
   MEMBER_ADDED: "Member Added",
   MEMBER_UPDATED: "Member Updated",
   MEMBER_DEACTIVATED: "Member Deactivated",

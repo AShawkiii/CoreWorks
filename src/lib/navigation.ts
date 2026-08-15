@@ -74,11 +74,16 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/tasks",
         permission: "task:view",
       },
-      { label: "Issues", icon: "issues", phase: 6, permission: "issue:view" },
+      {
+        label: "Issues",
+        icon: "issues",
+        href: "/issues",
+        permission: "issue:view",
+      },
       {
         label: "Requests",
         icon: "requests",
-        phase: 6,
+        href: "/requests",
         permission: "request:view",
       },
       { label: "Team", icon: "team", phase: 9, permission: "member:view" },

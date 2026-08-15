@@ -55,6 +55,7 @@ Nothing in `/legacy` is executed by CoreWorks. It is reference material and must
 | [`docs/phase3-business-logic.md`](docs/phase3-business-logic.md) | Every migrated legacy rule, its destination, parity status, known differences, and the tests covering it. |
 | [`docs/phase4-clients.md`](docs/phase4-clients.md) | The Clients module: what it consumes from Phase 3, list behaviours, the one deviation, security, and tests. |
 | [`docs/phase5-tasks.md`](docs/phase5-tasks.md) | The Tasks module: the status-change sequence, bulk semantics, the two-layer edit permission, and live verification results. |
+| [`docs/phase6-issues-requests.md`](docs/phase6-issues-requests.md) | Issues and Client Requests: why neither has a state machine, the resolve/receive stamps, request ageing, and live verification results. |
 
 `deployment.md` arrives with Phase 14.
 
@@ -66,7 +67,7 @@ Defined in the legacy system, cited in the audit, and preserved exactly. Summari
 
 - **Client Health** — `On Hold` (hard override) → `Delayed` (any Critical overdue task, ≥3 overdue tasks, or any open Critical issue) → `At Risk` (≥1 overdue task, a Critical/High task due within 3 days, or any open High issue) → `On Track`. Thresholds are per-organization settings.
 - **Weighted Completion %** — tasks count by priority weight (Critical 4, High 3, Medium 2, Low 1) over all non-cancelled tasks. Simple Completion % uses the same population, unweighted.
-- **Task status machine** — 7 statuses with enforced transitions. `Not Started → Completed` is not allowed; `Cancelled` is terminal.
+- **Task status machine** — 7 statuses with enforced transitions. `Not Started → Completed` is not allowed; `Cancelled` is terminal. Issues and requests deliberately have **no** such machine — legacy validated transitions only on tasks.
 - **Issue surfacing** — open Critical/High issues, or any open issue past its deadline; sorted most severe, then oldest.
 - **Task generation** — recurring work expands from Service Package templates, deduplicated on `client|serviceArea|taskName|period`, so generation is always safe to re-run and never rewrites history.
 

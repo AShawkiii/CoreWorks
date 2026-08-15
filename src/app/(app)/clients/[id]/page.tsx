@@ -82,6 +82,8 @@ export default async function ClientDetailPage({
   const canEdit = hasPermission(ctx.role, "client:update");
   const canArchive = hasPermission(ctx.role, "client:archive");
   const canViewTasks = hasPermission(ctx.role, "task:view");
+  const canViewIssues = hasPermission(ctx.role, "issue:view");
+  const canViewRequests = hasPermission(ctx.role, "request:view");
 
   const dateFormatter = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -414,9 +416,29 @@ export default async function ClientDetailPage({
 
       {tab === "issues" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Open issues</CardTitle>
-            <CardDescription>Most severe first.</CardDescription>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Open issues</CardTitle>
+              <CardDescription>Most severe first.</CardDescription>
+            </div>
+            {canViewIssues ? (
+              <div className="flex gap-2">
+                <Link
+                  href={{ pathname: "/issues", query: { clientId: id } }}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  All issues
+                </Link>
+                {hasPermission(ctx.role, "issue:create") ? (
+                  <Link
+                    href={{ pathname: "/issues/new", query: { clientId: id } }}
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    Raise issue
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
           </CardHeader>
           {vm.issues.length === 0 ? (
             <p className="px-6 pb-6 text-sm text-muted-foreground">
@@ -437,7 +459,18 @@ export default async function ClientDetailPage({
               <TableBody>
                 {vm.issues.map((issue) => (
                   <TableRow key={issue.issueId}>
-                    <TableCell className="font-medium">{issue.title}</TableCell>
+                    <TableCell className="font-medium">
+                      {canViewIssues ? (
+                        <Link
+                          href={`/issues/${issue.issueId}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {issue.title}
+                        </Link>
+                      ) : (
+                        issue.title
+                      )}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {issue.category ?? "—"}
                     </TableCell>
@@ -473,9 +506,29 @@ export default async function ClientDetailPage({
 
       {tab === "requests" ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Outstanding requests</CardTitle>
-            <CardDescription>Longest waiting first.</CardDescription>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle>Outstanding requests</CardTitle>
+              <CardDescription>Longest waiting first.</CardDescription>
+            </div>
+            {canViewRequests ? (
+              <div className="flex gap-2">
+                <Link
+                  href={{ pathname: "/requests", query: { clientId: id } }}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  All requests
+                </Link>
+                {hasPermission(ctx.role, "request:create") ? (
+                  <Link
+                    href={{ pathname: "/requests/new", query: { clientId: id } }}
+                    className={buttonVariants({ size: "sm" })}
+                  >
+                    Raise request
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
           </CardHeader>
           {vm.requests.length === 0 ? (
             <p className="px-6 pb-6 text-sm text-muted-foreground">
@@ -497,7 +550,16 @@ export default async function ClientDetailPage({
                 {vm.requests.map((request) => (
                   <TableRow key={request.requestId}>
                     <TableCell className="font-medium">
-                      {request.title}
+                      {canViewRequests ? (
+                        <Link
+                          href={`/requests/${request.requestId}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {request.title}
+                        </Link>
+                      ) : (
+                        request.title
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
