@@ -151,7 +151,17 @@ export const clientListQuerySchema = z.object({
     .optional()
     .default("health"),
   page: z.coerce.number().int().min(1).optional().default(1),
-  includeArchived: z.coerce.boolean().optional().default(false),
+  /**
+   * Parsed by explicit token rather than `z.coerce.boolean()`, which treats
+   * any non-empty string as true and would read `?includeArchived=false` as
+   * ON — surfacing archived clients on a URL that says not to.
+   */
+  includeArchived: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((value) =>
+      typeof value === "boolean" ? value : value === "true" || value === "1",
+    ),
 });
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;

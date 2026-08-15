@@ -57,7 +57,17 @@ export interface NavSection {
 export const NAV_SECTIONS: NavSection[] = [
   {
     label: null,
-    items: [{ label: "Dashboard", icon: "dashboard", href: "/dashboard" }],
+    items: [
+      {
+        label: "Dashboard",
+        icon: "dashboard",
+        href: "/dashboard",
+        // The Control Center gates on report:view (every role holds it today).
+        // Declaring it here keeps the sidebar and the page from disagreeing if
+        // a later phase narrows the permission.
+        permission: "report:view",
+      },
+    ],
   },
   {
     label: "Workspace",
