@@ -793,6 +793,29 @@ suite("deadline reminders", () => {
     await taskDue("Overdue", new Date(2026, 7, 10));
 
     await notifyDueAndOverdueTasks(ctx, TODAY);
+
+    /*
+     * Backdate the first notification to the day it is meant to represent.
+     *
+     * The de-duplication rule compares stored `createdAt` against the start of
+     * the run date, and `createdAt` is stamped by PostgreSQL with the REAL
+     * clock — so a row written "on TODAY" actually carries whatever today
+     * genuinely is. Without this the second run sees a row created after the
+     * start of its own simulated day, treats it as already sent, and the test
+     * fails whenever the wall clock happens to land on the simulated next day.
+     *
+     * That is a property of simulating dates in the test, not of the rule: in
+     * production `today` is always the real date, so the stored timestamp and
+     * the run date always agree.
+     */
+    await prisma.notification.updateMany({
+      where: {
+        organizationId: ctx.organizationId,
+        type: NotificationType.TASK_OVERDUE,
+      },
+      data: { createdAt: TODAY },
+    });
+
     await notifyDueAndOverdueTasks(ctx, new Date(2026, 7, 16));
 
     expect(
